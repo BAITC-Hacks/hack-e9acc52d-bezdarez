@@ -37,6 +37,11 @@ export function SimulatorPage({
     return decisions.length ? calculateSimulation(decisions) : null
   }, [draft])
 
+  // Сообщения валидации на языке интерфейса; число недобора/перебора берём из распределения.
+  const allocated = CATEGORIES.reduce((s, c) => s + draft[c].allocatedBudget, 0)
+  const issueText = (i: ValidationIssue) =>
+    t(`issue.${i.code}`, { category: i.category ? category(i.category) : '', n: Math.abs(100 - allocated) })
+
   const setCategory = (c: Category, patch: Partial<DraftDecisions[Category]>) =>
     onChange({ ...draft, [c]: { ...draft[c], ...patch } })
 
@@ -143,10 +148,10 @@ export function SimulatorPage({
                     <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
                     {i.category && i.code === 'missing_project' ? (
                       <button className="text-left underline-offset-2 hover:underline" onClick={() => setActive(i.category!)}>
-                        {i.message}
+                        {issueText(i)}
                       </button>
                     ) : (
-                      <span>{i.message}</span>
+                      <span>{issueText(i)}</span>
                     )}
                   </li>
                 ))}

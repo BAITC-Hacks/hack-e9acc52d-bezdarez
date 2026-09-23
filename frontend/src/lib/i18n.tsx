@@ -146,6 +146,10 @@ const ru = {
   'tour.step': 'Шаг {n} из {total}',
 
   'penalty.title': 'Штрафы и ограничения',
+  'issue.missing_project': 'Выберите проект в категории «{category}».',
+  'issue.category_range': 'Бюджет направления «{category}» должен быть от 5 до 40 единиц.',
+  'issue.under_budget': 'Распределите ещё {n} бюджетных единиц.',
+  'issue.over_budget': 'Бюджет превышен на {n} единиц. Уменьшите финансирование одного или нескольких направлений.',
 } as const
 
 export type I18nKey = keyof typeof ru
@@ -292,6 +296,10 @@ const kk: Record<I18nKey, string> = {
   'tour.step': '{total} қадамның {n}-шісі',
 
   'penalty.title': 'Айыппұлдар мен шектеулер',
+  'issue.missing_project': '«{category}» санатында жобаны таңдаңыз.',
+  'issue.category_range': '«{category}» бағытының бюджеті 5-тен 40 бірлікке дейін болуы керек.',
+  'issue.under_budget': 'Тағы {n} бюджет бірлігін бөліңіз.',
+  'issue.over_budget': 'Бюджет {n} бірлікке асып кетті. Бір немесе бірнеше бағыттың қаржысын азайтыңыз.',
 }
 
 const METRIC_LABELS_I18N: Record<Lang, Record<Metric, string>> = {

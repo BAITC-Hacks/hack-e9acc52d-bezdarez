@@ -26,7 +26,10 @@ export function Assistant({
   const [msgs, setMsgs] = useState<Msg[]>([])
   const tips = adviseDraft(draft)
   const endRef = useRef<HTMLDivElement>(null)
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [msgs, open])
+  // Блочное тело обязательно: scrollIntoView в новых браузерах возвращает Promise, а React ждёт функцию очистки.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' })
+  }, [msgs, open])
 
   const ask = async (question: string) => {
     const q = question.trim()

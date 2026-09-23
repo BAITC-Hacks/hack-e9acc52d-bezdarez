@@ -19,6 +19,8 @@ import type { DraftDecisions } from '../types/simulation'
 import { Modal } from './Modal'
 
 const tenge = (v: number) => `${v.toLocaleString('ru-RU')} ₸`
+/** Коэффициент без округления: 0.25 → «0,25». */
+const coef = (v: number) => String(v).replace('.', ',')
 
 /** Окно «Штрафы»: правила модели, штрафы текущего решения и реальные штрафы КоАП РК для контекста. */
 export function PenaltiesModal({ open, onClose, draft }: { open: boolean; onClose: () => void; draft: DraftDecisions }) {
@@ -36,9 +38,9 @@ export function PenaltiesModal({ open, onClose, draft }: { open: boolean; onClos
             <Scale aria-hidden className="size-5 text-accent" /> Штрафы модели — снижают AQLS
           </h3>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Rule title="Недофинансирование" formula={`(${LOW_BUDGET_THRESHOLD} − бюджет) × ${num(LOW_PENALTY_PER_UNIT)}`} text={`Сфера получила меньше ${LOW_BUDGET_THRESHOLD} ед. — проекты «голодают».`} />
-            <Rule title="Перекос" formula={`(бюджет − ${HIGH_BUDGET_THRESHOLD}) × ${num(HIGH_PENALTY_PER_UNIT)}`} text={`Больше ${HIGH_BUDGET_THRESHOLD} ед. в одну сферу — остальные страдают.`} />
-            <Rule title="Обслуживание (3 года)" formula={`(Σ обслуживания − ${MAINTENANCE_THRESHOLD}) × ${num(MAINTENANCE_PENALTY_PER_UNIT)}`} text="Дорогие в содержании проекты давят на бюджет в долгосрочной перспективе." />
+            <Rule title="Недофинансирование" formula={`(${LOW_BUDGET_THRESHOLD} − бюджет) × ${coef(LOW_PENALTY_PER_UNIT)}`} text={`Сфера получила меньше ${LOW_BUDGET_THRESHOLD} ед. — проекты «голодают».`} />
+            <Rule title="Перекос" formula={`(бюджет − ${HIGH_BUDGET_THRESHOLD}) × ${coef(HIGH_PENALTY_PER_UNIT)}`} text={`Больше ${HIGH_BUDGET_THRESHOLD} ед. в одну сферу — остальные страдают.`} />
+            <Rule title="Обслуживание (3 года)" formula={`(Σ обслуживания − ${MAINTENANCE_THRESHOLD}) × ${coef(MAINTENANCE_PENALTY_PER_UNIT)}`} text="Дорогие в содержании проекты давят на бюджет в долгосрочной перспективе." />
           </div>
 
           <div className="mt-4 rounded-2xl bg-surface-2 p-4">
