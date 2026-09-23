@@ -1,0 +1,91 @@
+import { AlertTriangle, CheckCircle2, Circle, Clock, Wrench } from 'lucide-react'
+import { METRICS } from '../data/baseline'
+import { SPEED_LABELS, fmtDelta } from '../lib/format'
+import type { CityProject } from '../types/project'
+
+const METRIC_SHORT = { mobility: 'М', ecology: 'Э', social: 'С', safety: 'Б', services: 'ГС' } as const
+
+export function ProjectCard({
+  project,
+  selected,
+  onSelect,
+}: {
+  project: CityProject
+  selected: boolean
+  onSelect: () => void
+}) {
+  return (
+    <article
+      className={`flex flex-col rounded-2xl border p-4 transition ${
+        selected ? 'border-accent bg-accent-track/60' : 'border-line bg-surface-2'
+      }`}
+    >
+      <header className="mb-2 flex items-start gap-2">
+        <h3 className="flex-1 text-base font-semibold leading-snug">{project.title}</h3>
+        <span className="rounded-md bg-surface px-2 py-0.5 text-xs text-ink-2">{SPEED_LABELS[project.speed]}</span>
+      </header>
+      <p className="mb-3 text-sm text-ink-2">{project.shortDescription}</p>
+
+      <dl className="mb-3 grid grid-cols-3 gap-2 text-center font-mono text-xs tabular-nums">
+        <Budget label="Мин." value={project.minBudget} />
+        <Budget label="Рекоменд." value={project.recommendedBudget} strong />
+        <Budget label="Макс." value={project.maxBudget} />
+      </dl>
+
+      <ul className="mb-3 flex flex-wrap gap-1.5" aria-label="Эффект за 1 год при рекомендуемом бюджете">
+        {METRICS.filter((m) => project.effects[m] !== 0).map((m) => (
+          <li
+            key={m}
+            className={`rounded-md px-1.5 py-0.5 font-mono text-xs ${
+              project.effects[m] > 0 ? 'bg-good/15 text-good-ink' : 'bg-crit/15 text-crit-ink'
+            }`}
+          >
+            {METRIC_SHORT[m]} {fmtDelta(project.effects[m])}
+          </li>
+        ))}
+      </ul>
+
+      <ul className="mb-2 space-y-1 text-xs text-ink-2">
+        {project.benefits.map((b) => (
+          <li key={b} className="flex gap-1.5">
+            <CheckCircle2 aria-hidden className="mt-0.5 size-3.5 shrink-0 text-good-ink" /> {b}
+          </li>
+        ))}
+        {project.risks.map((r) => (
+          <li key={r} className="flex gap-1.5">
+            <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" /> <span>Риск: {r}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+        <span className="flex items-center gap-1">
+          <Clock aria-hidden className="size-3.5" /> ×{project.longTermMultiplier} через 3 года
+        </span>
+        <span className="flex items-center gap-1">
+          <Wrench aria-hidden className="size-3.5" /> Обслуживание {project.maintenanceCost}/4
+        </span>
+      </p>
+
+      <button
+        onClick={onSelect}
+        aria-pressed={selected}
+        className={`mt-auto flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+          selected ? 'bg-accent text-white' : 'border border-line hover:border-accent'
+        }`}
+      >
+        {selected ? <CheckCircle2 aria-hidden className="size-4" /> : <Circle aria-hidden className="size-4" />}
+        {selected ? 'Выбрано' : 'Выбрать проект'}
+      </button>
+    </article>
+  )
+}
+
+function Budget({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <div className="rounded-lg bg-surface px-1 py-1.5">
+      <dt className="font-sans text-[10px] uppercase tracking-wide text-muted">{label}</dt>
+      <dd className={strong ? 'text-sm font-bold text-ink' : 'text-ink-2'}>{value}</dd>
+    </div>
+  )
+}
