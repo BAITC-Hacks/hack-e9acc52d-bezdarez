@@ -10,10 +10,15 @@
 
 ## Основные возможности
 
+- **AI-помощник** (кнопка в правом нижнем углу) — агент, который смотрит на ваши решения и предлагает действия с кнопкой «Применить»: выбрать проект для синергии, выровнять бюджет, перейти к незаполненной сфере, запустить симуляцию. Отвечает на вопросы («как снизить пробки?») через NVIDIA LLM (`POST /api/assist`), без ключа — по данным каталога.
+- **Обучение** — 8 шагов с подсветкой элементов интерфейса; запускается автоматически при первом входе в симулятор, повторяется из настроек или из помощника.
+- **Настройки** — светлая / тёмная / системная тема, русский / казахский интерфейс, статус AI-сервиса, сброс решений.
+- **Окно штрафов** — формулы штрафов модели и штрафы текущего решения по сферам + реальные штрафы по КоАП РК (ст. 505, 592, 597, 336, 434) в тенге по МРП 2026 = 4 325 ₸, со ссылками на официальные тексты.
+- **30 проектов и 10 синергий** — по 6 проектов в каждой сфере (15 из ТЗ + 15 дополнительных: ЛРТ, газификация частного сектора, набережная Есиля, теплосети, защита от паводков и др.).
 - **Интерактивная карта Астаны** — реальные границы пяти районов (Есиль, Алматы, Сарыарка, Байконыр, Нура) и река Есиль из OpenStreetMap. При наведении район приподнимается с анимацией и показывает индекс, пять показателей относительно города и характерные проблемы; слои карты переключаются по показателям. На экране результата карта показывает, как изменения распределились по районам.
 - **Бюджет в тенге** — 100 бюджетных единиц по условному курсу 1 ед. = 2 млрд ₸ (всего 200 млрд ₸); суммы в тенге показаны на карточках проектов, ползунках, в шапке и в результате.
 - **Стартовый экран** — правила, бюджет, исходное состояние города (AQLS 58, пять показателей, радар, проблемы города), предупреждение о демо-данных.
-- **Экран решений** — 5 сфер × 3 проекта (15 проектов). Карточка: описание, мин./рекомендуемый/макс. бюджет, эффекты, риски, скорость результата, обслуживание. Ползунки 5–40 ед., счётчики «распределено / осталось / превышение», живой прогноз AQLS и радар, диаграмма бюджета, понятные ошибки. Кнопка запуска заблокирована, пока распределение некорректно.
+- **Экран решений** — 5 сфер × 6 проектов. Карточка: описание, мин./рекомендуемый/макс. бюджет, эффекты, риски, скорость результата, обслуживание. Ползунки 5–40 ед., счётчики «распределено / осталось / превышение», живой прогноз AQLS и радар, диаграмма бюджета, понятные ошибки. Кнопка запуска заблокирована, пока распределение некорректно.
 - **Экран результата** — анимированный AQLS «до → после», таблица и столбцы по пяти показателям, переключатель **1 год / 3 года**, синергии и штрафы, профиль стратегии (алгоритмический), положительные эффекты и риски, AI-объяснение, рекомендация, реакции четырёх условных жителей.
 - **AI только объясняет.** `POST /api/explain` отправляет в LLM уже рассчитанные значения; ответ проверяется по JSON-схеме и на отсутствие выдуманных чисел. Если AI недоступен или ответ не прошёл проверку — мгновенно показывается шаблонное объяснение, экран результата никогда не блокируется.
 - **«Изменить решения»** сохраняет выбор (LocalStorage), **«Начать заново»** сбрасывает.
@@ -59,19 +64,22 @@ flowchart TD
 ```text
 frontend/src/
   pages/            StartPage, SimulatorPage, ResultPage
+  (components)      + TopBar, CityMap, Assistant, Tour, SettingsModal, PenaltiesModal, Modal
   components/       BudgetHeader, CategoryNavigation, ProjectCard, BudgetSlider,
                     ScoreGauge, ScoreRadarChart, BudgetChart, ResultComparison,
                     AiExplanation, CitizenReactionCard, StrategyProfile, ui
   data/             baseline.ts (исходные показатели, веса, курс ед. → ₸), projects.ts (каталог 15 проектов),
                     synergies.ts, fallbackTexts.ts (реакции жителей), categoryVisuals.ts,
-                    districts.ts (модельные данные районов), astanaMap.ts (геометрия из OSM)
+                    districts.ts (модельные данные районов), astanaMap.ts (геометрия из OSM),
+                    realFines.ts (штрафы КоАП РК, МРП 2026)
   lib/              calculateSimulation, calculateProjectEffect, calculateSynergies,
                     calculatePenalties, determineProfile, generateFallbackExplanation,
-                    districtProjection, buildAiPayload, explainApi, storage, *.test.ts
+                    districtProjection, advisor (советы помощника), i18n (ru/kk, тема),
+                    buildAiPayload, explainApi, storage, *.test.ts
   types/            project.ts, simulation.ts, ai.ts (Zod-схема ответа AI)
 backend/app/
   main.py           FastAPI-приложение
-  explain.py        POST /api/explain, GET /api/health, промпт, проверки, rate-limit
+  explain.py        POST /api/explain, POST /api/assist, GET /api/health, промпты, проверки, rate-limit
   llm.py            OpenAI-совместимый клиент (NVIDIA API Catalog / Brev)
 backend/tests_explain/   тесты API без сети
 docs/               tz.txt (ТЗ), screenshots/
@@ -170,14 +178,16 @@ npm run dev
 **Автотесты:**
 
 ```bash
-cd frontend && npm test            # 24 теста: движок, районы: формулы, синергии, штрафы, валидация, детерминизм
-cd backend && .venv/bin/python -m pytest   # 11 тестов API: схема, выдуманные числа, фолбэк, rate-limit, утечка ключа
+cd frontend && npm test            # 26 тестов: движок, районы, синергии, эффекты: формулы, синергии, штрафы, валидация, детерминизм
+cd backend && .venv/bin/python -m pytest   # 13 тестов API: схема, выдуманные числа, фолбэк, rate-limit, утечка ключа
 cd frontend && npm run build && npx oxlint src
 ```
 
 Проверка API вручную: `curl http://localhost:8000/api/health` → `{"status":"ok","llm":{"configured":…}}`.
 
 ## API
+
+`POST /api/assist` — вопрос AI-помощнику: `{"question": "…", "context": {"decisions": […], "allocated": 100}}` → `{"success": true, "answer": "…", "model": "…"}` или `{"success": false, "useFallback": true}` (тогда фронтенд отвечает по данным каталога).
 
 `POST /api/explain` — тело `{"simulationResult": {horizon, overallBefore, overallAfter, scoresBefore, scoresAfter, selectedProjects, synergies, penalties, strategyProfile}}` (формат п. 13.2 ТЗ).
 
@@ -189,6 +199,12 @@ cd frontend && npm run build && npx oxlint src
 ## Скриншоты
 
 ![Карта районов](docs/screenshots/map.png)
+
+| AI-помощник | Обучение |
+|---|---|
+| ![Помощник](docs/screenshots/assistant.png) | ![Обучение](docs/screenshots/tour.png) |
+| **Штрафы (КоАП РК)** | **Тёмная тема · қазақша** |
+| ![Штрафы](docs/screenshots/penalties.png) | ![Тёмная тема](docs/screenshots/dark-kk.png) |
 
 | Старт | Решения |
 |---|---|
@@ -202,4 +218,4 @@ cd frontend && npm run build && npx oxlint src
 
 ## Сторонние компоненты
 
-React, Vite, Tailwind CSS, Recharts, Zod, Lucide (MIT/ISC); FastAPI, Pydantic, Uvicorn, python-dotenv (MIT/BSD). LLM: модели NVIDIA API Catalog по их лицензиям. Границы районов и река — © участники OpenStreetMap, лицензия ODbL (данные получены через Nominatim/Overpass, упрощены). Каталог проектов, коэффициенты, показатели районов и тексты — синтетические, подготовлены командой по ТЗ.
+React, Vite, Tailwind CSS, Recharts, Zod, Lucide (MIT/ISC); FastAPI, Pydantic, Uvicorn, python-dotenv (MIT/BSD). LLM: модели NVIDIA API Catalog по их лицензиям. Штрафы — Кодекс РК об административных правонарушениях (https://adilet.zan.kz/rus/docs/K1400000235), МРП 2026 — Закон РК № 239-VIII «О республиканском бюджете на 2026–2028 годы» (https://adilet.zan.kz/rus/docs/Z2500000239). Границы районов и река — © участники OpenStreetMap, лицензия ODbL (данные получены через Nominatim/Overpass, упрощены). Каталог проектов, коэффициенты, показатели районов и тексты — синтетические, подготовлены командой по ТЗ.
