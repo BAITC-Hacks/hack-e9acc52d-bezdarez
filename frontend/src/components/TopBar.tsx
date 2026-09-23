@@ -1,4 +1,6 @@
+import { Settings as SettingsIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useI18n } from '../lib/i18n'
 
 export type NavTarget = 'start' | 'simulator' | 'result'
 
@@ -7,17 +9,20 @@ export function TopBar({
   current,
   onNavigate,
   canOpenResult,
+  onSettings,
   children,
 }: {
   current: NavTarget
   onNavigate: (t: NavTarget) => void
   canOpenResult: boolean
+  onSettings: () => void
   children?: ReactNode
 }) {
+  const { t } = useI18n()
   const items: { id: NavTarget; label: string; disabled?: boolean }[] = [
-    { id: 'start', label: 'Главная' },
-    { id: 'simulator', label: 'Симулятор' },
-    { id: 'result', label: 'Результат', disabled: !canOpenResult },
+    { id: 'start', label: t('nav.home') },
+    { id: 'simulator', label: t('nav.simulator') },
+    { id: 'result', label: t('nav.result'), disabled: !canOpenResult },
   ]
   return (
     <div className="sticky top-0 z-30 px-3 pt-3 sm:px-6">
@@ -26,7 +31,7 @@ export function TopBar({
           <Logo />
           <span className="leading-tight">
             <span className="block text-sm font-extrabold tracking-tight">QALA BALANCE</span>
-            <span className="block text-[11px] font-medium text-muted">Аким на 5 часов</span>
+            <span className="block text-[11px] font-medium text-muted">{t('brand.sub')}</span>
           </span>
         </button>
         <nav aria-label="Разделы" className="order-3 flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
@@ -44,7 +49,18 @@ export function TopBar({
             </button>
           ))}
         </nav>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{children}</div>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {children}
+          <button
+            onClick={onSettings}
+            data-tour="settings"
+            aria-label={t('nav.settings')}
+            title={t('nav.settings')}
+            className="grid size-10 place-items-center rounded-xl border border-line bg-surface-2 text-ink-2 transition hover:text-accent"
+          >
+            <SettingsIcon aria-hidden className="size-5" />
+          </button>
+        </div>
       </header>
     </div>
   )

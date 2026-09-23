@@ -1,11 +1,13 @@
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
-import { CATEGORIES, CATEGORY_LABELS, TOTAL_BUDGET } from '../data/baseline'
+import { CATEGORIES, TOTAL_BUDGET } from '../data/baseline'
 import { CATEGORY_COLORS } from '../data/categoryVisuals'
 import type { Category } from '../types/project'
+import { useI18n } from '../lib/i18n'
 
 export function BudgetChart({ budgets }: { budgets: Record<Category, number> }) {
+  const { category } = useI18n()
   const total = CATEGORIES.reduce((s, c) => s + budgets[c], 0)
-  const data = CATEGORIES.map((c) => ({ name: CATEGORY_LABELS[c], value: budgets[c], c }))
+  const data = CATEGORIES.map((c) => ({ name: category(c), value: budgets[c], c }))
   if (total < TOTAL_BUDGET) data.push({ name: 'Не распределено', value: TOTAL_BUDGET - total, c: 'rest' as Category })
   return (
     <div className="flex items-center gap-4">
@@ -24,7 +26,7 @@ export function BudgetChart({ budgets }: { budgets: Record<Category, number> }) 
         {CATEGORIES.map((c) => (
           <li key={c} className="flex items-center gap-2">
             <span className="size-2.5 rounded-full" style={{ background: CATEGORY_COLORS[c] }} aria-hidden />
-            <span className="text-ink-2">{CATEGORY_LABELS[c]}</span>
+            <span className="text-ink-2">{category(c)}</span>
             <span className="ml-auto font-mono tabular-nums">{budgets[c]}</span>
           </li>
         ))}

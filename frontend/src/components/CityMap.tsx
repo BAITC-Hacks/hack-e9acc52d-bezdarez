@@ -6,6 +6,7 @@ import type { DistrictId } from '../data/districts'
 import { projectDistricts } from '../lib/districtProjection'
 import { deltaTone, fmt, fmtDelta } from '../lib/format'
 import type { CityScores, Metric } from '../types/project'
+import { useI18n } from '../lib/i18n'
 
 type Layer = 'index' | Metric
 
@@ -22,7 +23,8 @@ function heat(v: number, lo = 40, hi = 80): string {
  * Карта Астаны по районам. Без cityAfter — исходное состояние,
  * с cityAfter — проекция результата симуляции и изменения по районам.
  */
-export function CityMap({ cityAfter, title = 'Карта районов Астаны' }: { cityAfter?: CityScores; title?: string }) {
+export function CityMap({ cityAfter, title }: { cityAfter?: CityScores; title?: string }) {
+  const { t, metric } = useI18n()
   const rows = useMemo(() => projectDistricts(cityAfter), [cityAfter])
   const [layer, setLayer] = useState<Layer>('index')
   const [hovered, setHovered] = useState<DistrictId | null>(null)
@@ -44,10 +46,10 @@ export function CityMap({ cityAfter, title = 'Карта районов Аста
       <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
         <div>
           <h2 id="map-title" className="flex items-center gap-2 text-xl font-extrabold">
-            <MapPin aria-hidden className="size-5 text-accent" /> {title}
+            <MapPin aria-hidden className="size-5 text-accent" /> {title ?? t('map.title')}
           </h2>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-            <MousePointer2 aria-hidden className="size-3.5" /> Наведите курсор на район или выберите его кнопкой ниже
+            <MousePointer2 aria-hidden className="size-3.5" /> {t('map.hint')}
           </p>
         </div>
         <div role="radiogroup" aria-label="Слой карты" className="flex flex-wrap gap-1.5">
@@ -57,16 +59,16 @@ export function CityMap({ cityAfter, title = 'Карта районов Аста
               role="radio"
               aria-checked={layer === l}
               onClick={() => setLayer(l)}
-              className={`pill transition ${layer === l ? 'bg-ink text-white' : 'bg-surface-2 text-ink-2 hover:bg-lavender'}`}
+              className={`pill transition ${layer === l ? 'bg-ink text-page' : 'bg-surface-2 text-ink-2 hover:bg-lavender'}`}
             >
-              {LAYER_LABELS[l]}
+              {l === 'index' ? t('map.index') : metric(l)}
             </button>
           ))}
         </div>
       </div>
 
       <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-        <div className="relative rounded-3xl bg-gradient-to-br from-surface-2 to-lavender p-3">
+        <div className="relative rounded-3xl bg-linear-to-br from-surface-2 to-lavender p-3">
           <svg viewBox={`-20 -20 ${MAP_WIDTH + 40} ${MAP_HEIGHT + 40}`} className="mx-auto block max-h-[560px] w-full" aria-label="Карта районов Астаны">
             <defs>
               <filter id="lift" x="-20%" y="-20%" width="140%" height="140%">
@@ -83,7 +85,7 @@ export function CityMap({ cityAfter, title = 'Карта районов Аста
                   d={DISTRICT_SHAPES[id].d}
                   fill={color(valueOf(r))}
                   fillRule="evenodd"
-                  stroke="#fff"
+                  stroke="var(--color-surface)"
                   strokeWidth={isActive ? 7 : 4}
                   strokeLinejoin="round"
                   tabIndex={0}
@@ -116,24 +118,24 @@ export function CityMap({ cityAfter, title = 'Карта районов Аста
               const isActive = r.district.id === activeId
               return (
                 <g key={r.district.id} pointerEvents="none" style={{ transition: 'opacity 200ms' }} opacity={activeId && !isActive ? 0.8 : 1}>
-                  <text x={s.cx} y={s.cy - 8} textAnchor="middle" fontSize={isActive ? 40 : 34} fontWeight={800} fill="#302a36" stroke="#fff" strokeWidth={8} paintOrder="stroke">
+                  <text x={s.cx} y={s.cy - 8} textAnchor="middle" fontSize={isActive ? 40 : 34} fontWeight={800} className="map-label" strokeWidth={8} paintOrder="stroke">
                     {r.district.short}
                   </text>
-                  <text x={s.cx} y={s.cy + 34} textAnchor="middle" fontSize={32} fontWeight={700} fill="#302a36" stroke="#fff" strokeWidth={7} paintOrder="stroke">
+                  <text x={s.cx} y={s.cy + 34} textAnchor="middle" fontSize={32} fontWeight={700} className="map-label" strokeWidth={7} paintOrder="stroke">
                     {fmt(valueOf(r))}
                   </text>
                 </g>
               )
             })}
-            <text x={MAP_WIDTH / 2 + 70} y={MAP_HEIGHT * 0.575} fontSize={24} fontStyle="italic" fill="#2f7fc1" stroke="#fff" strokeWidth={5} paintOrder="stroke" pointerEvents="none">
-              р. Есиль
+            <text x={MAP_WIDTH / 2 + 70} y={MAP_HEIGHT * 0.575} fontSize={24} fontStyle="italic" fill="#2f7fc1" stroke="var(--color-surface)" strokeWidth={5} paintOrder="stroke" pointerEvents="none">
+              {t('map.river')}
             </text>
           </svg>
           <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-muted" aria-hidden>
             <span>{lo}</span>
             <span className="h-2 w-40 rounded-full" style={{ background: `linear-gradient(90deg, ${color(lo)}, ${color((lo + hi) / 2)}, ${color(hi)})` }} />
             <span>{hi}</span>
-            <span className="ml-1">· {LAYER_LABELS[layer].toLowerCase()}</span>
+            <span className="ml-1">· {(layer === 'index' ? t('map.index') : metric(layer)).toLowerCase()}</span>
           </div>
         </div>
 
@@ -160,8 +162,8 @@ export function CityMap({ cityAfter, title = 'Карта районов Аста
         ))}
       </div>
       <p className="border-t border-line px-5 py-3 text-[11px] text-muted sm:px-6">
-        Границы районов — © участники OpenStreetMap (ODbL). Показатели и проблемы районов — демонстрационные, не официальная статистика.
-        {showAfter && ' Районный эффект — визуальная проекция городского результата с учётом потребности района.'}
+        {t('map.note')}
+        {showAfter && t('map.noteAfter')}
       </p>
     </section>
   )
@@ -174,11 +176,12 @@ function DistrictCard({
   row: ReturnType<typeof projectDistricts>[number]
   showAfter: boolean
 }) {
+  const { t, metric } = useI18n()
   const { district, before, after, indexBefore, indexAfter } = row
   const scores = showAfter ? after : before
   return (
     <article className="rise flex flex-col rounded-3xl border border-line bg-surface p-5" aria-live="polite">
-      <p className="kicker">Район</p>
+      <p className="kicker">{t('map.district')}</p>
       <h3 className="text-2xl font-extrabold leading-tight">{district.name}</h3>
       <p className="mt-1 text-sm text-ink-2">{district.profile}</p>
 
@@ -187,7 +190,7 @@ function DistrictCard({
           {fmt(showAfter ? indexAfter : indexBefore)}
         </span>
         <span className="pb-1.5 text-sm text-muted">
-          индекс района
+          {t('map.districtIndex')}
           {showAfter && (
             <span className={`ml-2 font-bold ${deltaTone(indexAfter - indexBefore)}`}>
               {fmt(indexBefore)} → {fmt(indexAfter)} ({fmtDelta(indexAfter - indexBefore)})
@@ -203,14 +206,14 @@ function DistrictCard({
           return (
             <li key={m} className="rise" style={{ animationDelay: `${i * 50}ms` }}>
               <div className="flex justify-between text-sm">
-                <span className="text-ink-2">{METRIC_LABELS[m]}</span>
+                <span className="text-ink-2">{metric(m)}</span>
                 <span className="font-bold tabular-nums">
                   {fmt(v)}
                   {showAfter ? (
                     <span className={`ml-1.5 text-xs ${deltaTone(after[m] - before[m])}`}>{fmtDelta(after[m] - before[m])}</span>
                   ) : (
                     <span className={`ml-1.5 text-xs ${deltaTone(vsCity)}`} title="Относительно среднего по городу">
-                      {vsCity === 0 ? '= город' : `${fmtDelta(vsCity)} к городу`}
+                      {vsCity === 0 ? t('map.eqCity') : `${fmtDelta(vsCity)} ${t('map.vsCity')}`}
                     </span>
                   )}
                 </span>
@@ -226,7 +229,7 @@ function DistrictCard({
         })}
       </ul>
 
-      <h4 className="mt-5 text-sm font-bold">Проблемы района</h4>
+      <h4 className="mt-5 text-sm font-bold">{t('map.problems')}</h4>
       <ul className="mt-2 space-y-1.5 text-sm">
         {district.problems.map((p) => (
           <li key={p} className="flex items-start gap-2 rounded-xl bg-surface-2 px-3 py-2">

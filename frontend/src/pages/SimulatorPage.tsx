@@ -1,30 +1,36 @@
 import { AlertCircle, ArrowLeft, ArrowRight, Scale } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { BudgetChart } from '../components/BudgetChart'
 import { BudgetSlider } from '../components/BudgetSlider'
 import { CategoryNavigation } from '../components/CategoryNavigation'
 import { ProjectCard } from '../components/ProjectCard'
 import { ScoreRadarChart } from '../components/ScoreRadarChart'
 import { Button, DemoBadge, Kicker, Panel } from '../components/ui'
-import { BASELINE, CATEGORIES, CATEGORY_LABELS, TOTAL_BUDGET } from '../data/baseline'
+import { BASELINE, CATEGORIES } from '../data/baseline'
+import { balancedBudgets } from '../lib/advisor'
 import { PROJECTS, PROJECTS_BY_ID } from '../data/projects'
 import { calculateAqls, calculateSimulation, toDecisions } from '../lib/calculateSimulation'
 import { deltaTone, fmt, fmtDelta } from '../lib/format'
 import type { Category } from '../types/project'
 import type { DraftDecisions, ValidationIssue } from '../types/simulation'
+import { useI18n } from '../lib/i18n'
 
 export function SimulatorPage({
   draft,
   onChange,
   issues,
+  active,
+  onActiveChange: setActive,
+  onPenalties,
 }: {
   draft: DraftDecisions
   onChange: (d: DraftDecisions) => void
   issues: ValidationIssue[]
+  active: Category
+  onActiveChange: (c: Category) => void
+  onPenalties: () => void
 }) {
-  const [active, setActive] = useState<Category>(
-    () => CATEGORIES.find((c) => !draft[c].projectId) ?? 'transport',
-  )
+  const { t, category } = useI18n()
   // Предварительный прогноз по уже выбранным проектам — считается локально при каждом движении ползунка.
   const preview = useMemo(() => {
     const decisions = toDecisions(draft)
@@ -37,24 +43,7 @@ export function SimulatorPage({
   const idx = CATEGORIES.indexOf(active)
   const budgets = Object.fromEntries(CATEGORIES.map((c) => [c, draft[c].allocatedBudget])) as Record<Category, number>
 
-  const balanceToRecommended = () => {
-    // Выставляет рекомендуемые бюджеты выбранных проектов и доводит сумму до 100 пропорционально.
-    const rec = CATEGORIES.map((c) => (draft[c].projectId ? PROJECTS_BY_ID[draft[c].projectId!].recommendedBudget : 20))
-    const sum = rec.reduce((a, b) => a + b, 0)
-    const scaled = rec.map((r) => Math.max(5, Math.min(40, Math.round((r * TOTAL_BUDGET) / sum))))
-    let diff = TOTAL_BUDGET - scaled.reduce((a, b) => a + b, 0)
-    for (let i = 0; diff !== 0 && i < 50; i++) {
-      const j = i % scaled.length
-      const step = diff > 0 ? 1 : -1
-      if (scaled[j] + step >= 5 && scaled[j] + step <= 40) {
-        scaled[j] += step
-        diff -= step
-      }
-    }
-    const next = { ...draft }
-    CATEGORIES.forEach((c, i) => (next[c] = { ...draft[c], allocatedBudget: scaled[i] }))
-    onChange(next)
-  }
+  const balanceToRecommended = () => onChange(balancedBudgets(draft))
 
   return (
     <>
@@ -69,14 +58,12 @@ export function SimulatorPage({
         <section aria-labelledby="cat-title" className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="kicker">
-                Направление {idx + 1} из {CATEGORIES.length}
-              </p>
+              <p className="kicker">{t('sim.direction', { n: idx + 1, total: CATEGORIES.length })}</p>
               <h1 id="cat-title" className="text-2xl font-bold">
-                {CATEGORY_LABELS[active]}
+                {category(active)}
               </h1>
             </div>
-            <div className="w-full sm:w-72">
+            <div className="w-full sm:w-72" data-tour="slider">
               <BudgetSlider
                 category={active}
                 value={draft[active].allocatedBudget}
@@ -85,7 +72,7 @@ export function SimulatorPage({
               />
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" data-tour="projects">
             {PROJECTS.filter((p) => p.category === active).map((p) => (
               <ProjectCard
                 key={p.id}
@@ -101,17 +88,18 @@ export function SimulatorPage({
           </div>
           <div className="flex justify-between">
             <Button variant="ghost" disabled={idx === 0} onClick={() => setActive(CATEGORIES[idx - 1])}>
-              <ArrowLeft aria-hidden className="size-4" /> Назад
+              <ArrowLeft aria-hidden className="size-4" /> {t('sim.back')}
             </Button>
             <Button variant="ghost" disabled={idx === CATEGORIES.length - 1} onClick={() => setActive(CATEGORIES[idx + 1])}>
-              Далее <ArrowRight aria-hidden className="size-4" />
+              {t('sim.next')} <ArrowRight aria-hidden className="size-4" />
             </Button>
           </div>
         </section>
 
         <aside className="min-w-0 space-y-4">
           <Panel>
-            <Kicker>Предварительный прогноз · 1 год</Kicker>
+            <div data-tour="forecast">
+            <Kicker>{t('sim.forecast')}</Kicker>
             {preview ? (
               <p className="font-mono text-3xl font-bold tabular-nums">
                 {fmt(calculateAqls(BASELINE))} → {fmt(preview.overallAfterOneYear)}{' '}
@@ -120,7 +108,7 @@ export function SimulatorPage({
                 </span>
               </p>
             ) : (
-              <p className="text-sm text-muted">Выберите хотя бы один проект, чтобы увидеть прогноз.</p>
+              <p className="text-sm text-muted">{t('sim.pickOne')}</p>
             )}
             <ScoreRadarChart before={BASELINE} after={preview?.afterOneYear} afterLabel="Прогноз" />
             {preview && preview.appliedSynergies.length > 0 && (
@@ -130,12 +118,13 @@ export function SimulatorPage({
                 ))}
               </ul>
             )}
+            </div>
           </Panel>
           <Panel>
             <div className="mb-3 flex items-center justify-between">
-              <Kicker>Распределение бюджета</Kicker>
+              <Kicker>{t('budget.distribution')}</Kicker>
               <button onClick={balanceToRecommended} className="-mt-2 flex items-center gap-1 text-xs text-accent-hover hover:underline">
-                <Scale aria-hidden className="size-3.5" /> По рекомендациям
+                <Scale aria-hidden className="size-3.5" /> {t('budget.byRecommended')}
               </button>
             </div>
             <BudgetChart budgets={budgets} />
@@ -147,7 +136,7 @@ export function SimulatorPage({
           </Panel>
           {issues.length > 0 && (
             <Panel>
-              <Kicker>Что нужно исправить</Kicker>
+              <Kicker>{t('sim.toFix')}</Kicker>
               <ul className="space-y-1.5 text-sm" aria-live="polite">
                 {issues.map((i) => (
                   <li key={i.message} className="flex gap-2 text-warn">
@@ -164,6 +153,9 @@ export function SimulatorPage({
               </ul>
             </Panel>
           )}
+          <button onClick={onPenalties} className="w-full rounded-2xl border border-line bg-surface px-4 py-3 text-left text-sm font-semibold text-ink-2 transition hover:border-accent/40 hover:text-ink">
+            ⚖ {t('start.penaltyRules')} →
+          </button>
           <div className="lg:hidden">
             <DemoBadge compact />
           </div>

@@ -1,11 +1,13 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { METRIC_LABELS, METRICS } from '../data/baseline'
+import { METRICS } from '../data/baseline'
 import { deltaTone, fmt, fmtDelta } from '../lib/format'
 import type { CityScores } from '../types/project'
+import { useI18n } from '../lib/i18n'
 
 export function ResultComparison({ before, after }: { before: CityScores; after: CityScores }) {
-  const data = METRICS.map((m) => ({ name: METRIC_LABELS[m], До: before[m], После: after[m] }))
+  const { metric } = useI18n()
+  const data = METRICS.map((m) => ({ name: metric(m), До: before[m], После: after[m] }))
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
       <table className="w-full text-sm">
@@ -24,7 +26,7 @@ export function ResultComparison({ before, after }: { before: CityScores; after:
             const Icon = Math.round(d * 10) === 0 ? Minus : d > 0 ? ArrowUpRight : ArrowDownRight
             return (
               <tr key={m} className="border-t border-line">
-                <td className="py-2 font-sans">{METRIC_LABELS[m]}</td>
+                <td className="py-2 font-sans">{metric(m)}</td>
                 <td className="py-2 text-right text-ink-2">{fmt(before[m])}</td>
                 <td className="py-2 text-right font-semibold">{fmt(after[m])}</td>
                 <td className={`py-2 text-right font-semibold ${deltaTone(d)}`}>

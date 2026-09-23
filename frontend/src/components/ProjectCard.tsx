@@ -1,7 +1,8 @@
 import { AlertTriangle, CheckCircle2, Circle, Clock, Wrench } from 'lucide-react'
 import { METRICS } from '../data/baseline'
-import { SPEED_LABELS, fmtDelta, fmtTenge } from '../lib/format'
+import { fmtDelta, fmtTenge } from '../lib/format'
 import type { CityProject } from '../types/project'
+import { useI18n } from '../lib/i18n'
 
 const METRIC_SHORT = { mobility: 'М', ecology: 'Э', social: 'С', safety: 'Б', services: 'ГС' } as const
 
@@ -14,6 +15,7 @@ export function ProjectCard({
   selected: boolean
   onSelect: () => void
 }) {
+  const { t } = useI18n()
   return (
     <article
       className={`flex flex-col rounded-3xl border bg-surface p-5 shadow-[0_12px_32px_-22px_rgba(48,42,54,0.35)] transition ${
@@ -22,14 +24,14 @@ export function ProjectCard({
     >
       <header className="mb-2 flex items-start gap-2">
         <h3 className="flex-1 text-base font-semibold leading-snug">{project.title}</h3>
-        <span className="pill shrink-0 bg-lavender px-2.5 py-1 text-[11px] text-ink-2">{SPEED_LABELS[project.speed]}</span>
+        <span className="pill shrink-0 bg-lavender px-2.5 py-1 text-[11px] text-ink-2">{t(`speed.${project.speed}`)}</span>
       </header>
       <p className="mb-3 text-sm text-ink-2">{project.shortDescription}</p>
 
       <dl className="mb-3 grid grid-cols-3 gap-2 text-center font-mono text-xs tabular-nums">
-        <Budget label="Мин." value={project.minBudget} />
-        <Budget label="Рекоменд." value={project.recommendedBudget} strong />
-        <Budget label="Макс." value={project.maxBudget} />
+        <Budget label={t('card.min')} value={project.minBudget} />
+        <Budget label={t('card.rec')} value={project.recommendedBudget} strong />
+        <Budget label={t('card.max')} value={project.maxBudget} />
       </dl>
 
       <ul className="mb-3 flex flex-wrap gap-1.5" aria-label="Эффект за 1 год при рекомендуемом бюджете">
@@ -53,17 +55,17 @@ export function ProjectCard({
         ))}
         {project.risks.map((r) => (
           <li key={r} className="flex gap-1.5">
-            <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" /> <span>Риск: {r}</span>
+            <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" /> <span>{t('card.risk')}: {r}</span>
           </li>
         ))}
       </ul>
 
       <p className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1">
-          <Clock aria-hidden className="size-3.5" /> ×{project.longTermMultiplier} через 3 года
+          <Clock aria-hidden className="size-3.5" /> ×{project.longTermMultiplier} {t('card.in3y')}
         </span>
         <span className="flex items-center gap-1">
-          <Wrench aria-hidden className="size-3.5" /> Обслуживание {project.maintenanceCost}/4
+          <Wrench aria-hidden className="size-3.5" /> {t('card.maintenance')} {project.maintenanceCost}/4
         </span>
       </p>
 
@@ -75,18 +77,19 @@ export function ProjectCard({
         }`}
       >
         {selected ? <CheckCircle2 aria-hidden className="size-4" /> : <Circle aria-hidden className="size-4" />}
-        {selected ? 'Выбрано' : 'Выбрать проект'}
+        {selected ? t('card.selected') : t('card.select')}
       </button>
     </article>
   )
 }
 
 function Budget({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  const { t } = useI18n()
   return (
     <div className="rounded-xl bg-surface-2 px-1 py-1.5">
       <dt className="font-sans text-[10px] uppercase tracking-wide text-muted">{label}</dt>
       <dd className={strong ? 'text-sm font-bold text-ink' : 'text-ink-2'}>{fmtTenge(value)}</dd>
-      <dd className="text-[10px] text-muted">{value} ед.</dd>
+      <dd className="text-[10px] text-muted">{value} {t('budget.units')}</dd>
     </div>
   )
 }

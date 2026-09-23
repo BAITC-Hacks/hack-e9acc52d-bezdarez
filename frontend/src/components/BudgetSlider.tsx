@@ -3,6 +3,7 @@ import { CATEGORY_COLORS } from '../data/categoryVisuals'
 import { HIGH_BUDGET_THRESHOLD, LOW_BUDGET_THRESHOLD } from '../lib/calculatePenalties'
 import { fmtTenge } from '../lib/format'
 import type { Category } from '../types/project'
+import { useI18n } from '../lib/i18n'
 
 export function BudgetSlider({
   category,
@@ -15,6 +16,7 @@ export function BudgetSlider({
   recommended?: number
   onChange: (v: number) => void
 }) {
+  const { t, category: catLabel } = useI18n()
   const id = `budget-${category}`
   const set = (raw: number) => {
     if (!Number.isFinite(raw)) return
@@ -31,7 +33,7 @@ export function BudgetSlider({
       <div className="mb-1 flex items-center gap-2">
         <span className="size-2.5 rounded-full" style={{ background: CATEGORY_COLORS[category] }} aria-hidden />
         <label htmlFor={id} className="flex-1 text-sm font-medium">
-          {CATEGORY_LABELS[category]}
+          {catLabel(category)}
         </label>
         <input
           type="number"
@@ -57,7 +59,7 @@ export function BudgetSlider({
         <span>{CATEGORY_MIN_BUDGET}</span>
         <span className="font-semibold text-ink-2">
           {fmtTenge(value)}
-          {recommended !== undefined && <span className="font-normal text-muted"> · рек. {recommended} ед.</span>}
+          {recommended !== undefined && <span className="font-normal text-muted"> · {t('budget.recommendedShort')} {recommended} {t('budget.units')}</span>}
         </span>
         <span>{CATEGORY_MAX_BUDGET}</span>
       </p>

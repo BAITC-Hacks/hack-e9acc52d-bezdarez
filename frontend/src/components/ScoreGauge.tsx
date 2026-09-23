@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { deltaTone, fmt, fmtDelta } from '../lib/format'
+import { useI18n } from '../lib/i18n'
 
 /** Крупный AQLS с анимацией изменения (п. 14.3). */
 export function ScoreGauge({ value, before, label = 'Astana Quality of Life Score' }: { value: number; before?: number; label?: string }) {
+  const { t } = useI18n()
   const shown = useAnimatedNumber(value)
   const pct = Math.max(0, Math.min(100, shown))
   const delta = before === undefined ? null : value - before
@@ -27,10 +29,10 @@ export function ScoreGauge({ value, before, label = 'Astana Quality of Life Scor
         )}
         {delta !== null && (
           <p className={`font-mono text-2xl font-bold tabular-nums ${deltaTone(delta)}`}>
-            {fmtDelta(delta)} <span className="text-sm font-normal">балла</span>
+            {fmtDelta(delta)} <span className="text-sm font-normal">{t('result.points')}</span>
           </p>
         )}
-        <p className="mt-1 text-xs text-muted">Шкала 0–100 · модельный показатель</p>
+        <p className="mt-1 text-xs text-muted">{t('result.scale')}</p>
       </div>
     </div>
   )

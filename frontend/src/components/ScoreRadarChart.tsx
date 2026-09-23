@@ -1,18 +1,12 @@
 import { Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from 'recharts'
-import { METRIC_LABELS, METRICS } from '../data/baseline'
+import { METRICS } from '../data/baseline'
 import { fmt } from '../lib/format'
 import type { CityScores } from '../types/project'
-
-const SHORT: Record<string, string> = {
-  mobility: 'Мобильность',
-  ecology: 'Экология',
-  social: 'Соц. комфорт',
-  safety: 'Безопасность',
-  services: 'Сервисы',
-}
+import { useI18n } from '../lib/i18n'
 
 export function ScoreRadarChart({ before, after, afterLabel = 'После' }: { before: CityScores; after?: CityScores; afterLabel?: string }) {
-  const data = METRICS.map((m) => ({ metric: SHORT[m], before: before[m], after: after?.[m] }))
+  const { metric } = useI18n()
+  const data = METRICS.map((m) => ({ metric: metric(m).replace('Социальный комфорт', 'Соц. комфорт').replace('Городские сервисы', 'Сервисы'), before: before[m], after: after?.[m] }))
   return (
     <figure>
       <div className="h-64 sm:h-72" aria-hidden>
@@ -30,7 +24,7 @@ export function ScoreRadarChart({ before, after, afterLabel = 'После' }: { 
         </ResponsiveContainer>
       </div>
       <figcaption className="sr-only">
-        {METRICS.map((m) => `${METRIC_LABELS[m]}: ${fmt(before[m])}${after ? ` → ${fmt(after[m])}` : ''}`).join('; ')}
+        {METRICS.map((m) => `${metric(m)}: ${fmt(before[m])}${after ? ` → ${fmt(after[m])}` : ''}`).join('; ')}
       </figcaption>
     </figure>
   )

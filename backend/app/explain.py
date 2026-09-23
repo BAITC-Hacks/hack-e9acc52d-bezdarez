@@ -222,3 +222,61 @@ def explain(body: dict, request: Request) -> dict:
     if len(_cache) < 500:
         _cache[key] = result
     return result
+
+
+# ---------- AI-помощник ----------
+
+ASSIST_PROMPT = """Ты AI-помощник демонстрационного симулятора «Аким на 5 часов» (город Астана, данные модельные).
+Правила игры: 100 бюджетных единиц (1 ед. = 2 млрд ₸), пять сфер — транспорт, озеленение, социальная сфера,
+безопасность, городские сервисы; в каждой выбирается ровно один проект, на сферу 5–40 ед.; меньше 10 или
+больше 30 ед. на сферу — штраф; эффект растёт как корень из бюджета (максимум ×1.15); через 3 года сильнее
+долгосрочные проекты и растут расходы на обслуживание.
+Отвечай по-русски, коротко (2–4 предложения), дружелюбно и по делу, опираясь на контекст решений игрока.
+Не выдумывай официальную статистику Астаны и не называй модель реальным прогнозом.
+Верни JSON: {"answer": "текст ответа"}"""
+
+
+class AssistDecision(BaseModel):
+    category: str = Field(max_length=20)
+    projectId: str = Field(max_length=60)
+    allocatedBudget: int = Field(ge=0, le=100)
+
+
+class AssistContext(BaseModel):
+    decisions: list[AssistDecision] = Field(default_factory=list, max_length=5)
+    allocated: int = Field(default=0, ge=0, le=500)
+
+
+class AssistRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=300)
+    context: AssistContext = Field(default_factory=AssistContext)
+
+
+class AssistAnswer(BaseModel):
+    answer: str = Field(min_length=1, max_length=900)
+
+
+@router.post("/assist")
+def assist(body: dict, request: Request) -> dict:
+    ip = request.client.host if request.client else "unknown"
+    if not limiter.allow(ip):
+        return fallback("слишком много запросов, попробуйте через минуту")
+    try:
+        req = AssistRequest.model_validate(body)
+    except ValidationError:
+        return fallback("некорректный вопрос")
+    client = get_client()
+    if not client.configured:
+        return fallback("LLM не настроен (LLM_API_KEY / LLM_API_URL)")
+    messages = [
+        {"role": "system", "content": ASSIST_PROMPT},
+        {"role": "user", "content": json.dumps(req.model_dump(), ensure_ascii=False)},
+    ]
+    try:
+        ans = AssistAnswer.model_validate(client.chat_json(messages, max_tokens=400))
+        if FORBIDDEN_CLAIMS.search(ans.answer):
+            raise ValueError("заявление об официальных данных")
+    except (LLMError, ValidationError, ValueError) as e:
+        log.warning("assist fallback: %s", str(e)[:200])
+        return fallback("ответ AI не прошёл проверку")
+    return {"success": True, "answer": ans.answer, "model": client.model}

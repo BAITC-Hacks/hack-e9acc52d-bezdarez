@@ -123,3 +123,18 @@ def test_extract_json_tolerates_wrappers():
     assert extract_json('<think>hmm</think>```json\n{"a": 1}\n```') == {"a": 1}
     with pytest.raises(LLMError):
         extract_json("нет json")
+
+
+def test_assist_success(monkeypatch):
+    r = use(monkeypatch, FakeClient({"answer": "Возьмите автобусные полосы."})).post(
+        "/api/assist", json={"question": "Как снизить пробки?", "context": {"decisions": [], "allocated": 0}}
+    ).json()
+    assert r["success"] is True and "автобусные" in r["answer"]
+
+
+def test_assist_fallbacks(monkeypatch):
+    api = use(monkeypatch, FakeClient(configured=False))
+    assert api.post("/api/assist", json={"question": "привет"}).json()["useFallback"] is True
+    api = use(monkeypatch, FakeClient({"answer": ""}))
+    assert api.post("/api/assist", json={"question": "привет"}).json()["useFallback"] is True
+    assert api.post("/api/assist", json={"question": "x" * 301}).json()["useFallback"] is True

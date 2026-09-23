@@ -37,6 +37,37 @@
   color-scheme: light;
 }
 
+/* Тёмная тема: те же токены, компоненты не меняются. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-page: #121117;
+  --color-surface: #1c1b22;
+  --color-surface-2: #25242d;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-grid: #2e2d37;
+  --color-axis: #3a3944;
+  --color-ink: #f4f3f7;
+  --color-ink-2: #c4c2cc;
+  --color-muted: #8f8d99;
+  --color-accent: #16c07a;
+  --color-accent-hover: #2bd48d;
+  --color-accent-track: #123a2a;
+  --color-lavender: #2a2935;
+  --color-baseline-bar: #55535f;
+  --color-good-ink: #3fdc97;
+  --color-warn: #f2b33d;
+  --color-crit-ink: #ff7b80;
+}
+:root[data-theme="dark"] .glass {
+  background: rgba(28, 27, 34, 0.8);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .panel {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 16px 40px -24px rgba(0, 0, 0, 0.7);
+}
+/* подписи на карте: цвет текста и обводка из токенов */
+.map-label { fill: var(--color-ink); stroke: var(--color-surface); }
+
 * { box-sizing: border-box; }
 button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled), summary { cursor: pointer; }
@@ -53,7 +84,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-body { min-height: 100vh; }
+body { min-height: 100vh; transition: background-color 250ms ease, color 250ms ease; }
 
 @layer components {
   .panel {

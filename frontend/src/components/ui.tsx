@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { DEMO_DISCLAIMER } from '../data/baseline'
+import { useI18n } from '../lib/i18n'
 
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`panel p-5 sm:p-6 ${className}`}>{children}</section>
@@ -11,6 +11,7 @@ export function Kicker({ children }: { children: ReactNode }) {
 }
 
 export function DemoBadge({ compact = false }: { compact?: boolean }) {
+  const { t } = useI18n()
   return (
     <p
       role="note"
@@ -19,7 +20,7 @@ export function DemoBadge({ compact = false }: { compact?: boolean }) {
       }`}
     >
       <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
-      <span>{compact ? 'Демонстрационные данные — не официальная оценка Астаны' : DEMO_DISCLAIMER}</span>
+      <span>{compact ? t('demo.short') : t('demo.long')}</span>
     </p>
   )
 }
