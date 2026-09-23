@@ -1,5 +1,3 @@
-"""Provider contract and failure handling, without credentials or network calls."""
-
 import json
 from types import SimpleNamespace
 
