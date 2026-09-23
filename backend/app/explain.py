@@ -219,7 +219,7 @@ def explain(body: dict, request: Request) -> dict:
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT + lang_instruction(req.lang)},
-        {"role": "user", "content": json.dumps(payload.model_dump(), ensure_ascii=False)},
+        {"role": "user", "content": json.dumps(payload.model_dump(), ensure_ascii=False) + lang_instruction(req.lang)},
     ]
     try:
         expl = validate_explanation(client.chat_json(messages), payload)
@@ -280,7 +280,7 @@ def assist(body: dict, request: Request) -> dict:
         return fallback("LLM не настроен (LLM_API_KEY / LLM_API_URL)")
     messages = [
         {"role": "system", "content": ASSIST_PROMPT + lang_instruction(req.lang)},
-        {"role": "user", "content": json.dumps(req.model_dump(), ensure_ascii=False)},
+        {"role": "user", "content": json.dumps(req.model_dump(), ensure_ascii=False) + lang_instruction(req.lang)},
     ]
     try:
         ans = AssistAnswer.model_validate(client.chat_json(messages, max_tokens=400))
