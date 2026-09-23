@@ -14,8 +14,13 @@ export default function App() {
   const [draft, setDraft] = useState<DraftDecisions>(loadDraft)
   const [result, setResult] = useState<SimulationResult | null>(null)
 
-  useEffect(() => saveDraft(draft), [draft])
-  useEffect(() => window.scrollTo({ top: 0 }), [screen])
+  useEffect(() => {
+    saveDraft(draft)
+  }, [draft])
+  // Блочное тело обязательно: в новых браузерах scrollTo возвращает Promise, а React ждёт функцию очистки.
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [screen])
 
   const run = () => {
     if (validateDecisions(draft).length > 0) return

@@ -36,11 +36,18 @@ export function generateFallbackExplanation(result: SimulationResult, horizon: H
     `Расходы на обслуживание проектов сильнее проявятся на длинном горизонте.`,
   ]).slice(0, 3)
 
-  const topBudget = [...result.selectedDecisions].sort((a, b) => b.allocatedBudget - a.allocatedBudget)[0]
-  const recommendation =
-    worst.d < best.d - 4 && worstDecision
-      ? `Переведите 3–5 единиц из направления «${CATEGORY_LABELS[topBudget.category]}» (${topBudget.allocatedBudget} ед.) в «${CATEGORY_LABELS[worstDecision.category]}» (${worstDecision.allocatedBudget} ед.), чтобы выровнять рост показателей.`
-      : `Распределение сбалансировано; попробуйте сравнить горизонты 1 и 3 года и заменить проект с наименьшей эффективностью.`
+  // Донор — самое щедро профинансированное направление, кроме отстающего.
+  const donor = [...result.selectedDecisions]
+    .filter((d) => d.category !== worstDecision?.category)
+    .sort((a, b) => b.allocatedBudget - a.allocatedBudget)[0]
+  let recommendation: string
+  if (worst.d >= best.d - 4 || !worstDecision) {
+    recommendation = `Распределение сбалансировано; сравните горизонты 1 и 3 года и попробуйте заменить проект с наименьшей эффективностью.`
+  } else if (donor && donor.allocatedBudget > worstDecision.allocatedBudget) {
+    recommendation = `Переведите 3–5 единиц из направления «${CATEGORY_LABELS[donor.category]}» (${donor.allocatedBudget} ед.) в «${CATEGORY_LABELS[worstDecision.category]}» (${worstDecision.allocatedBudget} ед.), чтобы выровнять рост показателей.`
+  } else {
+    recommendation = `Направление «${CATEGORY_LABELS[worstDecision.category]}» уже получает больше всех (${worstDecision.allocatedBudget} ед.), но растёт слабее: попробуйте другой проект в этой сфере с большим эффектом на «${METRIC_LABELS[worst.m]}».`
+  }
 
   return { summary, positives, risks, recommendation, citizenReactions: citizenReactions(result, horizon) }
 }

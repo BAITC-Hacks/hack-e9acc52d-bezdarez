@@ -16,7 +16,7 @@ export function BudgetHeader({
   const remaining = TOTAL_BUDGET - allocated
   const over = remaining < 0
   return (
-    <header className="panel sticky top-0 z-20 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-2xl px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-20 flex border-b border-line bg-page/95 backdrop-blur flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
       <button onClick={onHome} className="flex items-center gap-2 text-left" aria-label="На стартовый экран">
         <Building2 aria-hidden className="size-6 text-accent" />
         <span>

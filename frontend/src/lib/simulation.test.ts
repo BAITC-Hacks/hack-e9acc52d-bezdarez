@@ -140,6 +140,22 @@ describe('объяснения', () => {
     const r = calculateSimulation(BALANCED)
     for (const h of ['1y', '3y'] as const) expect(aiExplanationSchema.safeParse(generateFallbackExplanation(r, h)).success).toBe(true)
   })
+  it('рекомендация не предлагает перевод бюджета из сферы в неё же', () => {
+    const r = calculateSimulation(
+      decide([
+        ['bus-lanes', 22],
+        ['tree-planting', 20],
+        ['mobile-clinics', 20],
+        ['emergency-center', 20],
+        ['digital-requests', 18],
+      ]),
+    )
+    for (const h of ['1y', '3y'] as const) {
+      const rec = generateFallbackExplanation(r, h).recommendation
+      const m = rec.match(/из направления «(.+?)».*в «(.+?)»/)
+      if (m) expect(m[1]).not.toBe(m[2])
+    }
+  })
   it('профиль сбалансированного распределения', () => {
     expect(determineProfile(BALANCED).id).toBe('balanced')
   })

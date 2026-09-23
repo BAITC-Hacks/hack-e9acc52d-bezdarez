@@ -65,7 +65,7 @@ export function SimulatorPage({
     <>
       <BudgetHeader allocated={allocated} canRun={issues.length === 0} onRun={onRun} onHome={onHome} />
       <main id="main" className="mx-auto grid max-w-[1500px] gap-5 px-4 py-5 lg:grid-cols-[260px_1fr_360px]">
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
           <CategoryNavigation active={active} draft={draft} onSelect={setActive} />
           <div className="hidden lg:block">
             <DemoBadge compact />
@@ -115,7 +115,7 @@ export function SimulatorPage({
           </div>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <Panel>
             <Kicker>Предварительный прогноз · 1 год</Kicker>
             {preview ? (
