@@ -6,18 +6,23 @@ import type { CityScores } from '../types/project'
 import { useI18n } from '../lib/i18n'
 
 export function ResultComparison({ before, after }: { before: CityScores; after: CityScores }) {
-  const { metric } = useI18n()
-  const data = METRICS.map((m) => ({ name: metric(m), До: before[m], После: after[m] }))
+  const { metric, lang } = useI18n()
+  const H = {
+    ru: { metric: 'Показатель', before: 'До', after: 'После', change: 'Изменение' },
+    kk: { metric: 'Көрсеткіш', before: 'Дейін', after: 'Кейін', change: 'Өзгеріс' },
+    en: { metric: 'Indicator', before: 'Before', after: 'After', change: 'Change' },
+  }[lang]
+  const data = METRICS.map((m) => ({ name: metric(m), [H.before]: before[m], [H.after]: after[m] }))
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
       <table className="w-full text-sm">
-        <caption className="sr-only">Показатели до и после</caption>
+        <caption className="sr-only">{H.metric}</caption>
         <thead>
           <tr className="text-left text-xs text-muted">
-            <th className="py-1.5 font-medium">Показатель</th>
-            <th className="py-1.5 text-right font-medium">До</th>
-            <th className="py-1.5 text-right font-medium">После</th>
-            <th className="py-1.5 text-right font-medium">Изменение</th>
+            <th className="py-1.5 font-medium">{H.metric}</th>
+            <th className="py-1.5 text-right font-medium">{H.before}</th>
+            <th className="py-1.5 text-right font-medium">{H.after}</th>
+            <th className="py-1.5 text-right font-medium">{H.change}</th>
           </tr>
         </thead>
         <tbody className="font-mono tabular-nums">
@@ -52,8 +57,8 @@ export function ResultComparison({ before, after }: { before: CityScores; after:
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="До" fill="var(--color-baseline-bar)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="После" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey={H.before} fill="var(--color-baseline-bar)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey={H.after} fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

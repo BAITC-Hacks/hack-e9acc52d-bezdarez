@@ -5,7 +5,8 @@ import type { CityScores } from '../types/project'
 import { useI18n } from '../lib/i18n'
 
 export function ScoreRadarChart({ before, after, afterLabel = 'После' }: { before: CityScores; after?: CityScores; afterLabel?: string }) {
-  const { metric } = useI18n()
+  const { metric, lang } = useI18n()
+  const beforeLabel = { ru: 'До', kk: 'Дейін', en: 'Before' }[lang]
   const data = METRICS.map((m) => ({ metric: metric(m).replace('Социальный комфорт', 'Соц. комфорт').replace('Городские сервисы', 'Сервисы'), before: before[m], after: after?.[m] }))
   return (
     <figure>
@@ -15,7 +16,7 @@ export function ScoreRadarChart({ before, after, afterLabel = 'После' }: { 
             <PolarGrid stroke="var(--color-grid)" />
             <PolarAngleAxis dataKey="metric" tick={{ fill: 'var(--color-ink-2)', fontSize: 12 }} />
             <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-            <Radar name="До" dataKey="before" stroke="var(--color-baseline-bar)" fill="var(--color-baseline-bar)" fillOpacity={0.35} isAnimationActive={false} />
+            <Radar name={beforeLabel} dataKey="before" stroke="var(--color-baseline-bar)" fill="var(--color-baseline-bar)" fillOpacity={0.35} isAnimationActive={false} />
             {after && (
               <Radar name={afterLabel} dataKey="after" stroke="var(--color-accent)" fill="var(--color-accent)" fillOpacity={0.35} />
             )}

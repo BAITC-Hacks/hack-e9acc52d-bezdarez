@@ -14,9 +14,12 @@ export const deltaTone = (v: number) =>
 /** Единицы → тенге: 20 ед. → «40 млрд ₸», 0,5 ед. → «1 млрд ₸». */
 export const fmtTenge = (units: number) => {
   const bn = units * TENGE_BN_PER_UNIT
+  // язык интерфейса выставляет SettingsProvider на <html lang>
+  const en = typeof document !== 'undefined' && document.documentElement.lang === 'en'
+  const locale = en ? 'en-US' : 'ru-RU'
   return bn >= 1000
-    ? `${(bn / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} трлн ₸`
-    : `${bn.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} млрд ₸`
+    ? `${(bn / 1000).toLocaleString(locale, { maximumFractionDigits: 2 })} ${en ? 'tn' : 'трлн'} ₸`
+    : `${bn.toLocaleString(locale, { maximumFractionDigits: 1 })} ${en ? 'bn' : 'млрд'} ₸`
 }
 
 export const SPEED_LABELS = { fast: 'Быстрый эффект', medium: 'Средний срок', slow: 'Долгосрочный' } as const
