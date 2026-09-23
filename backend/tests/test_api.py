@@ -1,5 +1,3 @@
-"""HTTP-level tests: the backend re-validates everything, whatever the client sends."""
-
 import pytest
 from fastapi.testclient import TestClient
 
