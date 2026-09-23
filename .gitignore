@@ -1,0 +1,34 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+
+# Local tooling and operating system files
+.codebase-memory/
+.docker-local/
+.artifacts/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

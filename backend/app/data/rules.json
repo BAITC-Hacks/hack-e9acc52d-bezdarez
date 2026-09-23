@@ -1,0 +1,37 @@
+{
+  "budget": 100,
+  "required_decisions": 5,
+  "max_per_category": 2,
+  "horizon_quarters": 8,
+  "critical_threshold": 40,
+  "score": {"avg_weight": 0.7, "min_weight": 0.3, "critical_penalty": 1.0},
+  "categories": [
+    {"id": "transport", "name": "Транспорт", "indicators": ["T1", "T2"]},
+    {"id": "ecology", "name": "Экология", "indicators": ["E1", "E2"]},
+    {"id": "social", "name": "Социальная сфера", "indicators": ["S1", "S2"]},
+    {"id": "safety", "name": "Безопасность", "indicators": ["B1", "B2"]},
+    {"id": "services", "name": "Городские сервисы", "indicators": ["C1", "C2"]}
+  ],
+  "indicators": [
+    {"id": "T1", "name": "Разгрузка дорог", "weight": 0.10},
+    {"id": "T2", "name": "Доступность общественного транспорта", "weight": 0.10},
+    {"id": "E1", "name": "Озеленение", "weight": 0.09},
+    {"id": "E2", "name": "Качество воздуха", "weight": 0.11},
+    {"id": "S1", "name": "Школы и детсады", "weight": 0.11},
+    {"id": "S2", "name": "Поликлиники и первичная медицина", "weight": 0.11},
+    {"id": "B1", "name": "Безопасность улиц", "weight": 0.09},
+    {"id": "B2", "name": "Безопасность дорожного движения", "weight": 0.09},
+    {"id": "C1", "name": "Надёжность ЖКХ", "weight": 0.10},
+    {"id": "C2", "name": "Скорость решения обращений", "weight": 0.10}
+  ],
+  "synergies": [
+    {"id": "SYN_M1_M2", "measures": ["M1", "M2"], "anchor": "M1", "indicator": "T1", "bonus": 2},
+    {"id": "SYN_M10_M12", "measures": ["M10", "M12"], "anchor": "M10", "indicator": "B1", "bonus": 2},
+    {"id": "SYN_M5_M6", "measures": ["M5", "M6"], "anchor": "M5", "indicator": "E2", "bonus": 2}
+  ],
+  "conflicts": [
+    {"measures": ["M1", "M3"], "scope": "global"},
+    {"measures": ["M4", "M7"], "scope": "same_district"},
+    {"measures": ["M5", "M13"], "scope": "same_district"}
+  ]
+}
