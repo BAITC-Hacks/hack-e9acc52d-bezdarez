@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORIES } from '../data/baseline'
 import { PROJECTS } from '../data/projects'
+import { SYNERGIES } from '../data/synergies'
 import { aiExplanationSchema } from '../types/ai'
 import type { DraftDecisions, SelectedDecision } from '../types/simulation'
 import { buildAiPayload } from './buildAiPayload'
@@ -37,6 +38,16 @@ describe('каталог', () => {
       expect(p.recommendedBudget).toBeLessThanOrEqual(p.maxBudget)
       expect(p.maintenanceCost).toBeGreaterThanOrEqual(1)
       expect(p.maintenanceCost).toBeLessThanOrEqual(4)
+    }
+  })
+})
+
+describe('синергии', () => {
+  it('каждая синергия связывает существующие проекты из разных категорий', () => {
+    for (const syn of SYNERGIES) {
+      const [a, b] = syn.projects.map((id) => PROJECTS.find((p) => p.id === id))
+      expect(a && b, syn.id).toBeTruthy()
+      expect(a!.category, syn.id).not.toBe(b!.category)
     }
   })
 })

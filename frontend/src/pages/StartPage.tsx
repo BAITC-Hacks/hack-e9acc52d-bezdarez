@@ -52,7 +52,7 @@ export function StartPage({ onStart, hasDraft }: { onStart: () => void; hasDraft
               </span>
               <span>
                 <span className="block font-semibold leading-tight">{CATEGORY_LABELS[c]}</span>
-                <span className="text-xs text-muted">{count} проекта на выбор</span>
+                <span className="text-xs text-muted">{count} {count % 10 >= 2 && count % 10 <= 4 && (count < 12 || count > 14) ? 'проекта' : 'проектов'} на выбор</span>
               </span>
             </li>
           )

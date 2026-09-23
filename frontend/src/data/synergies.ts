@@ -38,4 +38,28 @@ export const SYNERGIES: Synergy[] = [
     bonus: { ecology: 2, services: 1 },
     description: 'Умный полив + Оптимизация вывоза отходов: +2 к экологии, +1 к сервисам',
   },
+  {
+    id: 'lrt-accessible',
+    projects: ['lrt-extension', 'accessible-environment'],
+    bonus: { social: 2, mobility: 1 },
+    description: 'Продление ЛРТ + Доступная городская среда: +2 к социальной сфере, +1 к мобильности',
+  },
+  {
+    id: 'gas-heat',
+    projects: ['private-sector-gas', 'heat-network'],
+    bonus: { ecology: 2, services: 1 },
+    description: 'Газификация частного сектора + Модернизация теплосетей: +2 к экологии, +1 к сервисам',
+  },
+  {
+    id: 'kindergartens-crossings',
+    projects: ['kindergartens', 'safe-crossings'],
+    bonus: { social: 1, safety: 1 },
+    description: 'Детские сады + Безопасные переходы у школ: +1 к социальной сфере, +1 к безопасности',
+  },
+  {
+    id: 'cameras-lights',
+    projects: ['smart-cameras', 'adaptive-traffic-lights'],
+    bonus: { safety: 2, mobility: 1 },
+    description: 'Умные камеры + Адаптивные светофоры: +2 к безопасности, +1 к мобильности',
+  },
 ]
