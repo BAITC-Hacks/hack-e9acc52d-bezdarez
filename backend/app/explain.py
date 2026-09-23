@@ -18,7 +18,7 @@ from collections import defaultdict, deque
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from app.llm import LLMClient, LLMError
+from app.llm import LLMChain, LLMError
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api")
@@ -90,8 +90,16 @@ class SimulationPayload(BaseModel):
         return [s[:200] for s in v]
 
 
+LANG_NAMES = {"ru": "русском", "kk": "казахском (қазақ тілінде)", "en": "английском (in English)"}
+
+
+def lang_instruction(lang: str) -> str:
+    return f"\nВсе текстовые значения JSON пиши на {LANG_NAMES.get(lang, LANG_NAMES['ru'])} языке. Ключи JSON не переводи."
+
+
 class ExplainRequest(BaseModel):
     simulationResult: SimulationPayload
+    lang: str = Field(default="ru", pattern=r"^(ru|kk|en)$")
 
 
 class CitizenReaction(BaseModel):
@@ -176,8 +184,8 @@ limiter = RateLimiter()
 _cache: dict[str, dict] = {}
 
 
-def get_client() -> LLMClient:
-    return LLMClient()
+def get_client() -> LLMChain:
+    return LLMChain()
 
 
 def fallback(reason: str) -> dict:
@@ -187,7 +195,7 @@ def fallback(reason: str) -> dict:
 @router.get("/health")
 def health() -> dict:
     client = get_client()
-    return {"status": "ok", "llm": {"configured": client.configured, "model": client.model if client.configured else None}}
+    return {"status": "ok", "llm": {"configured": client.configured, "model": client.model, "providers": client.models}}
 
 
 @router.post("/explain")
@@ -196,7 +204,8 @@ def explain(body: dict, request: Request) -> dict:
     if not limiter.allow(ip):
         return fallback("слишком много запросов, попробуйте через минуту")
     try:
-        payload = ExplainRequest.model_validate(body).simulationResult
+        req = ExplainRequest.model_validate(body)
+        payload = req.simulationResult
     except ValidationError:
         return fallback("некорректные входные данные")
 
@@ -204,12 +213,12 @@ def explain(body: dict, request: Request) -> dict:
     if not client.configured:
         return fallback("LLM не настроен (LLM_API_KEY / LLM_API_URL)")
 
-    key = payload.model_dump_json()
+    key = req.lang + payload.model_dump_json()
     if key in _cache:
         return _cache[key]
 
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": SYSTEM_PROMPT + lang_instruction(req.lang)},
         {"role": "user", "content": json.dumps(payload.model_dump(), ensure_ascii=False)},
     ]
     try:
@@ -250,6 +259,7 @@ class AssistContext(BaseModel):
 class AssistRequest(BaseModel):
     question: str = Field(min_length=1, max_length=300)
     context: AssistContext = Field(default_factory=AssistContext)
+    lang: str = Field(default="ru", pattern=r"^(ru|kk|en)$")
 
 
 class AssistAnswer(BaseModel):
@@ -269,7 +279,7 @@ def assist(body: dict, request: Request) -> dict:
     if not client.configured:
         return fallback("LLM не настроен (LLM_API_KEY / LLM_API_URL)")
     messages = [
-        {"role": "system", "content": ASSIST_PROMPT},
+        {"role": "system", "content": ASSIST_PROMPT + lang_instruction(req.lang)},
         {"role": "user", "content": json.dumps(req.model_dump(), ensure_ascii=False)},
     ]
     try:

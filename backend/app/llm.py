@@ -108,3 +108,44 @@ def extract_json(text: str) -> dict:
     if not isinstance(data, dict):
         raise LLMError("JSON не является объектом")
     return data
+
+
+class LLMChain:
+    """Цепочка провайдеров: локальная модель (Ollama на GPU ноутбука) → NVIDIA API Catalog.
+
+    Первый провайдер — LLM_API_URL / LLM_MODEL / LLM_API_KEY (например, http://127.0.0.1:11434/v1).
+    Резервный — NVIDIA_API_KEY (+ NVIDIA_MODEL), если задан. Если все упали — LLMError,
+    и вызывающий код показывает системную аналитику.
+    """
+
+    def __init__(self) -> None:
+        self.providers: list[LLMClient] = []
+        if os.getenv("LLM_API_URL") or os.getenv("LLM_API_KEY"):
+            # ключ основного провайдера — только LLM_API_KEY: ключ NVIDIA не уходит на локальный сервер
+            self.providers.append(LLMClient(api_key=os.getenv("LLM_API_KEY", ""), retries=0))
+        nv_key = os.getenv("NVIDIA_API_KEY", "")
+        if nv_key and not any(p.api_key == nv_key for p in self.providers):
+            self.providers.append(
+                LLMClient(api_key=nv_key, api_url=DEFAULT_API_URL, model=os.getenv("NVIDIA_MODEL") or DEFAULT_MODEL, timeout=30)
+            )
+        self.model: str | None = self.providers[0].model if self.providers else None
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.providers)
+
+    @property
+    def models(self) -> list[str]:
+        return [p.model for p in self.providers]
+
+    def chat_json(self, messages: list[dict], **kw) -> dict:
+        last: LLMError | None = None
+        for p in self.providers:
+            try:
+                data = p.chat_json(messages, **kw)
+                self.model = p.model
+                return data
+            except LLMError as e:
+                log.warning("провайдер %s недоступен: %s", p.model, str(e)[:120])
+                last = e
+        raise last or LLMError("LLM не настроен")
