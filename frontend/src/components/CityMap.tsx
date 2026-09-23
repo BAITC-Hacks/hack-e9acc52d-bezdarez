@@ -24,7 +24,7 @@ function heat(v: number, lo = 40, hi = 80): string {
  * с cityAfter — проекция результата симуляции и изменения по районам.
  */
 export function CityMap({ cityAfter, title }: { cityAfter?: CityScores; title?: string }) {
-  const { t, metric } = useI18n()
+  const { t, metric, district: dt } = useI18n()
   const rows = useMemo(() => projectDistricts(cityAfter), [cityAfter])
   const [layer, setLayer] = useState<Layer>('index')
   const [hovered, setHovered] = useState<DistrictId | null>(null)
@@ -90,7 +90,7 @@ export function CityMap({ cityAfter, title }: { cityAfter?: CityScores; title?: 
                   strokeLinejoin="round"
                   tabIndex={0}
                   role="button"
-                  aria-label={`${r.district.name}: ${LAYER_LABELS[layer]} ${fmt(valueOf(r))}`}
+                  aria-label={`${dt(r.district).name}: ${LAYER_LABELS[layer]} ${fmt(valueOf(r))}`}
                   aria-pressed={pinned === id}
                   onMouseEnter={() => setHovered(id)}
                   onMouseLeave={() => setHovered(null)}
@@ -119,7 +119,7 @@ export function CityMap({ cityAfter, title }: { cityAfter?: CityScores; title?: 
               return (
                 <g key={r.district.id} pointerEvents="none" style={{ transition: 'opacity 200ms' }} opacity={activeId && !isActive ? 0.8 : 1}>
                   <text x={s.cx} y={s.cy - 8} textAnchor="middle" fontSize={isActive ? 40 : 34} fontWeight={800} className="map-label" strokeWidth={8} paintOrder="stroke">
-                    {r.district.short}
+                    {dt(r.district).short}
                   </text>
                   <text x={s.cx} y={s.cy + 34} textAnchor="middle" fontSize={32} fontWeight={700} className="map-label" strokeWidth={7} paintOrder="stroke">
                     {fmt(valueOf(r))}
@@ -156,7 +156,7 @@ export function CityMap({ cityAfter, title }: { cityAfter?: CityScores; title?: 
             }`}
           >
             <span className="size-3 rounded-full" style={{ background: color(valueOf(r)) }} aria-hidden />
-            <span className="font-semibold">{r.district.name}</span>
+            <span className="font-semibold">{dt(r.district).name}</span>
             <span className="font-bold tabular-nums text-ink-2">{fmt(valueOf(r))}</span>
           </button>
         ))}
@@ -176,8 +176,9 @@ function DistrictCard({
   row: ReturnType<typeof projectDistricts>[number]
   showAfter: boolean
 }) {
-  const { t, metric } = useI18n()
-  const { district, before, after, indexBefore, indexAfter } = row
+  const { t, metric, district: dt } = useI18n()
+  const { district: d0, before, after, indexBefore, indexAfter } = row
+  const district = dt(d0)
   const scores = showAfter ? after : before
   return (
     <article className="rise flex flex-col rounded-3xl border border-line bg-surface p-5" aria-live="polite">

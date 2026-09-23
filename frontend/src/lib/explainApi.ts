@@ -6,12 +6,12 @@ export type ExplainOutcome =
   | { source: 'fallback'; reason: string }
 
 /** POST /api/explain. Любая ошибка сети, сервера или схемы → резервный текст (FR-09). */
-export async function requestExplanation(payload: AiPayload, signal?: AbortSignal): Promise<ExplainOutcome> {
+export async function requestExplanation(payload: AiPayload, signal?: AbortSignal, lang = 'ru'): Promise<ExplainOutcome> {
   try {
     const res = await fetch('/api/explain', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ simulationResult: payload }),
+      body: JSON.stringify({ simulationResult: payload, lang }),
       signal,
     })
     const parsed = explainResponseSchema.safeParse(await res.json())

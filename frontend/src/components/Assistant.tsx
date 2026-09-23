@@ -19,7 +19,7 @@ export function Assistant({
   onAction: (a: AdvisorAction) => void
   onStartTour: () => void
 }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -42,7 +42,7 @@ export function Assistant({
       const res = await fetch('/api/assist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, context: { decisions: toDecisions(draft), allocated: allocatedTotal(draft) } }),
+        body: JSON.stringify({ question: q, lang, context: { decisions: toDecisions(draft), allocated: allocatedTotal(draft) } }),
       })
       const body = await res.json()
       if (body?.success && typeof body.answer === 'string') reply = { role: 'bot', text: body.answer, source: 'ai' }

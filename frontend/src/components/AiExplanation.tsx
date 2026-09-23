@@ -14,19 +14,19 @@ import { useI18n } from '../lib/i18n'
  * Так AI-запрос никогда не блокирует экран результата (п. 19.1).
  */
 export function AiExplanation({ result, horizon }: { result: SimulationResult; horizon: Horizon }) {
-  const { t } = useI18n()
-  const fallback = useMemo(() => generateFallbackExplanation(result, horizon), [result, horizon])
+  const { t, lang } = useI18n()
+  const fallback = useMemo(() => generateFallbackExplanation(result, horizon, lang), [result, horizon, lang])
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<{ key: string; outcome: ExplainOutcome | null }>({ key: '', outcome: null })
-  const key = `${JSON.stringify(result.selectedDecisions)}:${horizon}:${attempt}`
+  const key = `${JSON.stringify(result.selectedDecisions)}:${horizon}:${lang}:${attempt}`
 
   useEffect(() => {
     const ctrl = new AbortController()
-    requestExplanation(buildAiPayload(result, horizon), ctrl.signal)
+    requestExplanation(buildAiPayload(result, horizon), ctrl.signal, lang)
       .then((outcome) => setState({ key, outcome }))
       .catch(() => {})
     return () => ctrl.abort()
-  }, [key, result, horizon])
+  }, [key, result, horizon, lang])
 
   const outcome = state.key === key ? state.outcome : null
   const loading = outcome === null

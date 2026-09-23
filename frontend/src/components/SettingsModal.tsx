@@ -37,6 +37,7 @@ export function SettingsModal({
   const langs: { id: Lang; label: string; flag: string }[] = [
     { id: 'ru', label: 'Русский', flag: 'RU' },
     { id: 'kk', label: 'Қазақша', flag: 'ҚАЗ' },
+    { id: 'en', label: 'English', flag: 'EN' },
   ]
 
   return (
@@ -63,7 +64,7 @@ export function SettingsModal({
 
         <section>
           <h3 className="kicker mb-2.5">{t('settings.language')}</h3>
-          <div role="radiogroup" aria-label={t('settings.language')} className="grid grid-cols-2 gap-2">
+          <div role="radiogroup" aria-label={t('settings.language')} className="grid grid-cols-3 gap-2">
             {langs.map((l) => (
               <button
                 key={l.id}
@@ -78,7 +79,7 @@ export function SettingsModal({
               </button>
             ))}
           </div>
-          {lang === 'kk' && <p className="mt-2 text-xs text-muted">{t('settings.kkNote')}</p>}
+          
         </section>
 
         <section className="flex items-center gap-3 rounded-2xl bg-surface-2 p-4">

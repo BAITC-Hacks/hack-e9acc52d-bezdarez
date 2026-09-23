@@ -1,80 +1,94 @@
-import { BASELINE, CATEGORY_LABELS, CATEGORY_MAIN_METRIC, METRIC_LABELS, METRICS } from '../data/baseline'
+import { BASELINE, CATEGORY_MAIN_METRIC, METRICS } from '../data/baseline'
 import { PERSONAS, REACTION_TEMPLATES } from '../data/fallbackTexts'
+import { PROJECTS_BY_ID } from '../data/projects'
+import { SYNERGY_TEXT, projectTitle, type Lang } from '../data/translations'
 import type { AiExplanation } from '../types/ai'
 import type { Horizon, SimulationResult } from '../types/simulation'
-import { PROJECTS_BY_ID } from '../data/projects'
-import { num, outcomeFor } from './calculateSimulation'
+import { outcomeFor } from './calculateSimulation'
+import { EXPLAIN, PERSONAS_L, REACTIONS_L, cL, mL, numL, penaltyText, signedL, type Level } from './texts'
 
-const signed = (v: number) => `${v >= 0 ? '+' : '−'}${num(Math.abs(v))}`
-
-/** Шаблонное объяснение (FR-09): работает без AI и использует только рассчитанные данные. */
-export function generateFallbackExplanation(result: SimulationResult, horizon: Horizon): AiExplanation {
+/** Шаблонное объяснение (FR-09): работает без AI, использует только рассчитанные данные, на языке интерфейса. */
+export function generateFallbackExplanation(result: SimulationResult, horizon: Horizon, lang: Lang = 'ru'): AiExplanation {
+  const T = EXPLAIN[lang]
   const outcome = outcomeFor(result, horizon)
   const effectKey = horizon === '1y' ? 'effectOneYear' : 'effectThreeYears'
   const deltas = METRICS.map((m) => ({ m, d: outcome.scores[m] - BASELINE[m] })).sort((a, b) => b.d - a.d)
   const best = deltas[0]
   const worst = deltas[deltas.length - 1]
+  const title = (id: string) => projectTitle(id, lang)
   const bestProject = [...result.contributions].sort((a, b) => b[effectKey][best.m] - a[effectKey][best.m])[0]
   const worstDecision = result.selectedDecisions.find((d) => CATEGORY_MAIN_METRIC[d.category] === worst.m)
-  const overallDelta = outcome.overall - result.overallBefore
-  const horizonLabel = horizon === '1y' ? 'через 1 год' : 'через 3 года'
-
   const byBudget = [...result.selectedDecisions].sort((a, b) => b.allocatedBudget - a.allocatedBudget)
   const most = byBudget[0]
   const least = byBudget[byBudget.length - 1]
   const other = horizon === '1y' ? result.threeYears : result.oneYear
   const horizonDiff = other.overall - outcome.overall
-  const slowProjects = result.contributions.filter((c) => PROJECTS_BY_ID[c.projectId].longTermMultiplier >= 1.4).map((c) => `«${c.title}»`)
+  const slow = result.contributions.filter((c) => PROJECTS_BY_ID[c.projectId].longTermMultiplier >= 1.4).map((c) => `«${title(c.projectId)}»`)
 
   const summary = [
-    `Стратегия изменила общий показатель качества жизни ${horizonLabel} на ${signed(overallDelta)} балла (${num(result.overallBefore)} → ${num(outcome.overall)}).`,
-    `Наибольший рост — «${METRIC_LABELS[best.m]}» (${signed(best.d)}), основной вклад внёс проект «${bestProject.title}»; минимальное изменение — «${METRIC_LABELS[worst.m]}» (${signed(worst.d)}).`,
+    T.summaryTotal(horizon === '1y' ? T.horizon1 : T.horizon3, signedL(outcome.overall - result.overallBefore, lang), numL(result.overallBefore, lang), numL(outcome.overall, lang)),
+    T.summaryBest(mL(best.m, lang), signedL(best.d, lang), title(bestProject.projectId), mL(worst.m, lang), signedL(worst.d, lang)),
     most.allocatedBudget - least.allocatedBudget >= 4
-      ? `Компромисс: больше всего ресурсов получило направление «${CATEGORY_LABELS[most.category]}» (${most.allocatedBudget} ед.), меньше всего — «${CATEGORY_LABELS[least.category]}» (${least.allocatedBudget} ед.).`
-      : `Бюджет распределён ровно — от ${least.allocatedBudget} до ${most.allocatedBudget} ед. на направление, без явного перекоса.`,
+      ? T.tradeoff(cL(most.category, lang), most.allocatedBudget, cL(least.category, lang), least.allocatedBudget)
+      : T.evenSplit(least.allocatedBudget, most.allocatedBudget),
     horizon === '1y'
-      ? `Через 3 года AQLS составит ${num(other.overall)} (${signed(horizonDiff)})${slowProjects.length ? `: полностью раскроются ${slowProjects.join(', ')}` : ''}${other.penaltyTotal > outcome.penaltyTotal ? ', но вырастут расходы на обслуживание' : ''}.`
-      : `По сравнению с первым годом AQLS ${horizonDiff <= 0 ? `выше на ${num(Math.abs(horizonDiff))}` : `ниже на ${num(horizonDiff)}`}: долгосрочные проекты набирают силу, а быстрые эффекты частично выдыхаются.`,
+      ? T.in3y(numL(other.overall, lang), signedL(horizonDiff, lang), slow.join(', '), other.penaltyTotal > outcome.penaltyTotal)
+      : T.vs1y(numL(Math.abs(horizonDiff), lang), horizonDiff <= 0),
   ].join(' ')
 
-  const positives = padTo(outcome.positiveEffects, 3, [
-    `Все пять сфер получили финансирование — ни одно направление не осталось без проекта.`,
-    `Общий AQLS: ${num(result.overallBefore)} → ${num(outcome.overall)}.`,
-    `Профиль стратегии: ${result.strategyProfile.title}.`,
-  ]).slice(0, 3)
-  const risks = padTo(outcome.risks, 2, [
-    `Модель не учитывает внешние факторы — результат демонстрационный.`,
-    `Расходы на обслуживание проектов сильнее проявятся на длинном горизонте.`,
-  ]).slice(0, 3)
-
-  // Донор — самое щедро профинансированное направление, кроме отстающего.
-  const donor = [...result.selectedDecisions]
-    .filter((d) => d.category !== worstDecision?.category)
-    .sort((a, b) => b.allocatedBudget - a.allocatedBudget)[0]
-  let recommendation: string
-  if (worst.d >= best.d - 4 || !worstDecision) {
-    recommendation = `Распределение сбалансировано; сравните горизонты 1 и 3 года и попробуйте заменить проект с наименьшей эффективностью.`
-  } else if (donor && donor.allocatedBudget > worstDecision.allocatedBudget) {
-    recommendation = `Переведите 3–5 единиц из направления «${CATEGORY_LABELS[donor.category]}» (${donor.allocatedBudget} ед.) в «${CATEGORY_LABELS[worstDecision.category]}» (${worstDecision.allocatedBudget} ед.), чтобы выровнять рост показателей.`
-  } else {
-    recommendation = `Направление «${CATEGORY_LABELS[worstDecision.category]}» уже получает больше всех (${worstDecision.allocatedBudget} ед.), но растёт слабее: попробуйте другой проект в этой сфере с большим эффектом на «${METRIC_LABELS[worst.m]}».`
+  const positives: string[] = []
+  for (const { m, d } of deltas.slice(0, 2)) {
+    if (d <= 0) continue
+    const top = [...result.contributions].sort((a, b) => b[effectKey][m] - a[effectKey][m])[0]
+    positives.push(T.posMetric(mL(m, lang), signedL(d, lang), title(top.projectId)))
   }
+  result.appliedSynergyIds.forEach((id, k) => {
+    const text = lang === 'ru' ? result.appliedSynergies[k] : (SYNERGY_TEXT[lang][id] ?? result.appliedSynergies[k])
+    positives.push(T.posSynergy(text))
+  })
+  for (const c of result.contributions) {
+    const p = PROJECTS_BY_ID[c.projectId]
+    if (horizon === '1y' && p.speed === 'fast') positives.push(T.posFast(title(p.id)))
+    if (horizon === '3y' && p.longTermMultiplier >= 1.4) positives.push(T.posLong(title(p.id), numL(p.longTermMultiplier, lang)))
+  }
+  positives.push(T.posAll)
 
-  return { summary, positives, risks, recommendation, citizenReactions: citizenReactions(result, horizon) }
+  const risks: string[] = []
+  for (const { m, d } of deltas) if (d < 0) risks.push(T.riskDrop(mL(m, lang), numL(Math.abs(d), lang)))
+  if (worst.d >= 0 && worst.d < 3) risks.push(T.riskWeak(mL(worst.m, lang), signedL(worst.d, lang)))
+  for (const pen of outcome.penalties) risks.push(penaltyText(pen, lang, (c) => cL(c, lang)) + '.')
+  for (const c of result.contributions) {
+    const p = PROJECTS_BY_ID[c.projectId]
+    if (c.efficiency < 0.8) risks.push(T.riskLowEff(title(p.id), Math.round(c.efficiency * 100)))
+    if (horizon === '1y' && p.speed === 'slow') risks.push(T.riskSlow(title(p.id)))
+    if (horizon === '3y' && p.maintenanceCost >= 3) risks.push(T.riskMaint(title(p.id), p.maintenanceCost))
+  }
+  risks.push(T.riskModel)
+  if (risks.length < 2) risks.push(T.riskGeneric)
+
+  const donor = byBudget.find((d) => d.category !== worstDecision?.category)
+  let recommendation: string
+  if (worst.d >= best.d - 4 || !worstDecision) recommendation = T.recBalanced
+  else if (donor && donor.allocatedBudget > worstDecision.allocatedBudget)
+    recommendation = T.recMove(cL(donor.category, lang), donor.allocatedBudget, cL(worstDecision.category, lang), worstDecision.allocatedBudget)
+  else recommendation = T.recSwap(cL(worstDecision.category, lang), worstDecision.allocatedBudget, mL(worst.m, lang))
+
+  return {
+    summary,
+    positives: positives.slice(0, 3),
+    risks: risks.slice(0, 3),
+    recommendation,
+    citizenReactions: citizenReactions(result, horizon, lang),
+  }
 }
 
 /** Реакции условных жителей строятся по изменениям показателей (FR-10). */
-export function citizenReactions(result: SimulationResult, horizon: Horizon) {
+export function citizenReactions(result: SimulationResult, horizon: Horizon, lang: Lang = 'ru') {
   const scores = outcomeFor(result, horizon).scores
-  return PERSONAS.map(({ persona, metric }) => {
+  const personas = lang === 'ru' ? PERSONAS : PERSONAS_L[lang]
+  return personas.map(({ persona, metric }) => {
     const d = scores[metric] - BASELINE[metric]
-    const level = d >= 8 ? 'high' : d >= 3 ? 'mid' : d > 0 ? 'low' : 'none'
-    return { persona, text: REACTION_TEMPLATES[metric][level] }
+    const level: Level = d >= 8 ? 'high' : d >= 3 ? 'mid' : d > 0 ? 'low' : 'none'
+    return { persona, text: lang === 'ru' ? REACTION_TEMPLATES[metric][level] : REACTIONS_L[lang][metric][level] }
   })
-}
-
-function padTo(items: string[], n: number, fillers: string[]): string[] {
-  const out = [...items]
-  for (const f of fillers) if (out.length < n) out.push(f)
-  return out
 }

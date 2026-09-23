@@ -1,31 +1,12 @@
 import { Bot } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
-import { fmtTenge } from '../lib/format'
+import { TOUR_STEPS } from '../lib/texts'
 import { useI18n } from '../lib/i18n'
-
-interface Step {
-  target?: string
-  title: string
-  text: string
-}
-
-const STEPS: Step[] = [
-  {
-    title: 'Салем! Я AI-помощник QalaBalance',
-    text: `За минуту покажу, как управлять городом. У вас 100 бюджетных единиц — это ${fmtTenge(100)}. Задача — поднять качество жизни (AQLS) и не уйти в перекос.`,
-  },
-  { target: 'categories', title: 'Пять сфер города', text: 'Транспорт, озеленение, социальная сфера, безопасность и сервисы. В каждой нужно выбрать ровно один проект — галочка появится, когда выбор сделан.' },
-  { target: 'projects', title: 'Карточки проектов', text: 'На карточке — стоимость в тенге, эффекты по показателям (М, Э, С, Б, ГС), риски, скорость результата и расходы на обслуживание. Нажмите «Выбрать проект».' },
-  { target: 'slider', title: 'Бюджет направления', text: 'Двигайте ползунок: от 5 до 40 ед. Эффект растёт как корень из бюджета, поэтому переплата почти не помогает, а меньше 10 или больше 30 ед. — штраф.' },
-  { target: 'forecast', title: 'Живой прогноз', text: 'AQLS и радар пересчитываются мгновенно. Здесь же видно найденные синергии — бонусы за удачные пары проектов.' },
-  { target: 'budget', title: 'Счётчик бюджета', text: 'Распределите ровно 100 ед. — тогда кнопка «Запустить симуляцию» станет активной.' },
-  { target: 'assistant', title: 'Я всегда рядом', text: 'Нажмите на меня: подскажу синергии, выровняю бюджет одной кнопкой и отвечу на вопросы — например, «как снизить пробки?».' },
-  { target: 'settings', title: 'Настройки', text: 'Тёмная тема, казахский язык и повтор этого обучения — в настройках. Удачи, аким!' },
-]
 
 /** Пошаговое обучение: затемнение с «окном» вокруг элемента и карточка помощника. Монтируется заново при каждом открытии. */
 export function Tour({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const STEPS = TOUR_STEPS[lang]
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
   const step = STEPS[i]
@@ -60,7 +41,7 @@ export function Tour({ open, onClose }: { open: boolean; onClose: () => void }) 
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, STEPS.length])
 
   if (!open || !step) return null
   const pad = 8
