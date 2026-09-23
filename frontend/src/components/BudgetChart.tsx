@@ -5,10 +5,10 @@ import type { Category } from '../types/project'
 import { useI18n } from '../lib/i18n'
 
 export function BudgetChart({ budgets }: { budgets: Record<Category, number> }) {
-  const { category } = useI18n()
+  const { t, category } = useI18n()
   const total = CATEGORIES.reduce((s, c) => s + budgets[c], 0)
   const data = CATEGORIES.map((c) => ({ name: category(c), value: budgets[c], c }))
-  if (total < TOTAL_BUDGET) data.push({ name: 'Не распределено', value: TOTAL_BUDGET - total, c: 'rest' as Category })
+  if (total < TOTAL_BUDGET) data.push({ name: t('budget.unallocated'), value: TOTAL_BUDGET - total, c: 'rest' as Category })
   return (
     <div className="flex items-center gap-4">
       <div className="size-32 shrink-0" aria-hidden>

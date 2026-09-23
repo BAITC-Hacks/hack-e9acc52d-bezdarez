@@ -137,4 +137,4 @@ def test_assist_fallbacks(monkeypatch):
     assert api.post("/api/assist", json={"question": "привет"}).json()["useFallback"] is True
     api = use(monkeypatch, FakeClient({"answer": ""}))
     assert api.post("/api/assist", json={"question": "привет"}).json()["useFallback"] is True
-    assert api.post("/api/assist", json={"question": "x" * 301}).json()["useFallback"] is True
+    assert api.post("/api/assist", json={"question": "x" * 2001}).json()["useFallback"] is True

@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 
@@ -11,13 +12,21 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 load_dotenv()
 
 from app.explain import router  # noqa: E402
+from app.local_ai import local_runtime  # noqa: E402
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    with local_runtime():
+        yield
 
 app = FastAPI(
     title="Аким на 5 часов — AI Explanation API",
     description="Объяснение результатов детерминированного симулятора. Баллы считает клиентский Simulation Engine; LLM только объясняет.",
     version="2.0.0",
+    lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,

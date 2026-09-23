@@ -1,9 +1,12 @@
 import { PROJECTS_BY_ID } from '../data/projects'
 import type { Horizon, SimulationResult } from '../types/simulation'
 import { outcomeFor } from './calculateSimulation'
+import type { Lang } from './i18n'
+import { localizeProject, localizeSimulationResult } from './localizedContent'
 
 /** Входные данные AI (п. 13.2): только рассчитанные системой значения. */
-export function buildAiPayload(result: SimulationResult, horizon: Horizon) {
+export function buildAiPayload(result: SimulationResult, horizon: Horizon, lang: Lang = 'ru') {
+  result = localizeSimulationResult(result, lang)
   const outcome = outcomeFor(result, horizon)
   return {
     horizon: horizon === '1y' ? '1_year' : '3_years',
@@ -19,7 +22,7 @@ export function buildAiPayload(result: SimulationResult, horizon: Horizon) {
       efficiencyPercent: Math.round(c.efficiency * 100),
       speed: PROJECTS_BY_ID[c.projectId].speed,
       maintenanceCost: PROJECTS_BY_ID[c.projectId].maintenanceCost,
-      risks: PROJECTS_BY_ID[c.projectId].risks,
+      risks: localizeProject(PROJECTS_BY_ID[c.projectId], lang).risks,
     })),
     synergies: result.appliedSynergies,
     penalties: outcome.penalties.map((p) => p.description),

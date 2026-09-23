@@ -18,6 +18,7 @@ from collections import defaultdict, deque
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from app.assistant import AssistAnswer, AssistRequest, build_messages, validate_answer
 from app.llm import LLMChain, LLMError
 
 log = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ SYSTEM_PROMPT = """Ты объясняешь результат демонстр
 Не придумывай официальную статистику.
 Не утверждай, что результат является реальным прогнозом для Астаны.
 Не ссылайся на исследования и источники.
-Объясняй последствия простым и нейтральным языком на русском.
+Объясняй последствия простым и нейтральным языком. Язык ответа указан в конце инструкции.
 Обязательно упоминай как преимущества, так и компромиссы.
 Числа бери только из входного JSON (можно округлять до целых).
 
@@ -49,7 +50,11 @@ SYSTEM_PROMPT = """Ты объясняешь результат демонстр
 }
 Пассажир реагирует на мобильность, Родитель — на социальный комфорт, Предприниматель — на городские сервисы, Житель района — на экологию и безопасность."""
 
-FORBIDDEN_CLAIMS = re.compile(r"официальн\w* (данн|статист|прогноз)|по данным (акимата|исследован)|исследовани[ея] показ", re.I)
+FORBIDDEN_CLAIMS = re.compile(
+    r"официальн\w* (данн|статист|прогноз)|по данным (акимата|исследован)|исследовани[ея] показ|"
+    r"official (?:data|statistics|forecast)|according to (?:the )?(?:akimat|research)|(?:research|studies) (?:show|prove)|"
+    r"ресми (?:дерек|статистика|болжам)|әкімдік\w* дерек|зерттеу\w* (?:көрсет|дәлелде)", re.I,
+)
 
 
 # ---------- схемы ----------
@@ -94,7 +99,21 @@ LANG_NAMES = {"ru": "русском", "kk": "казахском (қазақ ті
 
 
 def lang_instruction(lang: str) -> str:
-    return f"\nВсе текстовые значения JSON пиши на {LANG_NAMES.get(lang, LANG_NAMES['ru'])} языке. Ключи JSON не переводи."
+    instructions = {
+        "ru": "Все текстовые значения JSON пиши естественно на русском, включая названия проектов и роли жителей.",
+        "kk": (
+            "JSON ішіндегі барлық мәтін қазақ тілінде болуы керек: қорытынды, артықшылықтар, тәуекелдер, "
+            "ұсыныс, жоба атаулары, тұрғындардың рөлдері мен пікірлері. Табиғи, сауатты қазақша жаз; "
+            "орысша сөйлемдер мен рөл атауларын араластырма. Ә, ғ, қ, ң, ө, ұ, ү, һ, і әріптерін дұрыс қолдан. "
+            "Тұрғындардың рөлдері: «Қоғамдық көлік жолаушысы», «Оқушының ата-анасы», «Кәсіпкер», «Аудан тұрғыны»."
+        ),
+        "en": (
+            "Write every text value in natural English, including the summary, positives, risks, recommendation, "
+            "project names, citizen roles and reactions. Do not mix Russian or Kazakh sentences into the answer. "
+            "Citizen roles: Public transport passenger, Parent of a schoolchild, Business owner, Neighborhood resident."
+        ),
+    }
+    return "\n" + instructions.get(lang, instructions["ru"]) + "\nKeep JSON keys and numeric values unchanged."
 
 
 class ExplainRequest(BaseModel):
@@ -195,23 +214,23 @@ def fallback(reason: str) -> dict:
 @router.get("/health")
 def health() -> dict:
     client = get_client()
-    return {"status": "ok", "llm": {"configured": client.configured, "model": client.model, "providers": client.models}}
+    return {"status": "ok", "llm": {"configured": client.configured, "available": client.probe_available(), "model": client.model, "providers": client.models}}
 
 
 @router.post("/explain")
 def explain(body: dict, request: Request) -> dict:
     ip = request.client.host if request.client else "unknown"
     if not limiter.allow(ip):
-        return fallback("слишком много запросов, попробуйте через минуту")
+        return fallback("rate_limited")
     try:
         req = ExplainRequest.model_validate(body)
         payload = req.simulationResult
     except ValidationError:
-        return fallback("некорректные входные данные")
+        return fallback("invalid_request")
 
     client = get_client()
     if not client.configured:
-        return fallback("LLM не настроен (LLM_API_KEY / LLM_API_URL)")
+        return fallback("not_configured")
 
     key = req.lang + payload.model_dump_json()
     if key in _cache:
@@ -219,13 +238,13 @@ def explain(body: dict, request: Request) -> dict:
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT + lang_instruction(req.lang)},
-        {"role": "user", "content": json.dumps(payload.model_dump(), ensure_ascii=False) + lang_instruction(req.lang)},
+        {"role": "user", "content": json.dumps(payload.model_dump(), ensure_ascii=False)},
     ]
     try:
         expl = validate_explanation(client.chat_json(messages), payload)
     except (LLMError, ValidationError, ValueError) as e:
-        log.warning("explain fallback: %s", str(e)[:200])
-        return fallback("ответ AI не прошёл проверку")
+        log.warning("explain fallback: %s", type(e).__name__)
+        return fallback("invalid_response")
 
     result = {"success": True, "data": expl.model_dump(), "model": client.model}
     if len(_cache) < 500:
@@ -235,58 +254,22 @@ def explain(body: dict, request: Request) -> dict:
 
 # ---------- AI-помощник ----------
 
-ASSIST_PROMPT = """Ты AI-помощник демонстрационного симулятора «Аким на 5 часов» (город Астана, данные модельные).
-Правила игры: 100 бюджетных единиц (1 ед. = 2 млрд ₸), пять сфер — транспорт, озеленение, социальная сфера,
-безопасность, городские сервисы; в каждой выбирается ровно один проект, на сферу 5–40 ед.; меньше 10 или
-больше 30 ед. на сферу — штраф; эффект растёт как корень из бюджета (максимум ×1.15); через 3 года сильнее
-долгосрочные проекты и растут расходы на обслуживание.
-Отвечай по-русски, коротко (2–4 предложения), дружелюбно и по делу, опираясь на контекст решений игрока.
-Не выдумывай официальную статистику Астаны и не называй модель реальным прогнозом.
-Верни JSON: {"answer": "текст ответа"}"""
-
-
-class AssistDecision(BaseModel):
-    category: str = Field(max_length=20)
-    projectId: str = Field(max_length=60)
-    allocatedBudget: int = Field(ge=0, le=100)
-
-
-class AssistContext(BaseModel):
-    decisions: list[AssistDecision] = Field(default_factory=list, max_length=5)
-    allocated: int = Field(default=0, ge=0, le=500)
-
-
-class AssistRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=300)
-    context: AssistContext = Field(default_factory=AssistContext)
-    lang: str = Field(default="ru", pattern=r"^(ru|kk|en)$")
-
-
-class AssistAnswer(BaseModel):
-    answer: str = Field(min_length=1, max_length=900)
-
-
 @router.post("/assist")
 def assist(body: dict, request: Request) -> dict:
     ip = request.client.host if request.client else "unknown"
     if not limiter.allow(ip):
-        return fallback("слишком много запросов, попробуйте через минуту")
+        return fallback("rate_limited")
     try:
         req = AssistRequest.model_validate(body)
     except ValidationError:
-        return fallback("некорректный вопрос")
+        return fallback("invalid_request")
     client = get_client()
     if not client.configured:
-        return fallback("LLM не настроен (LLM_API_KEY / LLM_API_URL)")
-    messages = [
-        {"role": "system", "content": ASSIST_PROMPT + lang_instruction(req.lang)},
-        {"role": "user", "content": json.dumps(req.model_dump(), ensure_ascii=False) + lang_instruction(req.lang)},
-    ]
+        return fallback("not_configured")
     try:
-        ans = AssistAnswer.model_validate(client.chat_json(messages, max_tokens=400))
-        if FORBIDDEN_CLAIMS.search(ans.answer):
-            raise ValueError("заявление об официальных данных")
+        ans = validate_answer(client.chat_json(build_messages(req), max_tokens=2200,
+                                               temperature=0.3, response_schema=AssistAnswer.model_json_schema()), req)
     except (LLMError, ValidationError, ValueError) as e:
-        log.warning("assist fallback: %s", str(e)[:200])
-        return fallback("ответ AI не прошёл проверку")
-    return {"success": True, "answer": ans.answer, "model": client.model}
+        log.warning("assist fallback: %s", type(e).__name__)
+        return fallback("invalid_response")
+    return {"success": True, **ans.model_dump(), "model": client.model}

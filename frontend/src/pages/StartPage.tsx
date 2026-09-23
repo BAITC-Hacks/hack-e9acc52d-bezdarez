@@ -4,15 +4,16 @@ import { Ornament } from '../components/Ornament'
 import { ScoreGauge } from '../components/ScoreGauge'
 import { ScoreRadarChart } from '../components/ScoreRadarChart'
 import { DemoBadge, Kicker, Panel } from '../components/ui'
-import { BASELINE, CATEGORIES, METRICS, TOTAL_BUDGET } from '../data/baseline'
+import { BASELINE, CATEGORIES, METRICS, TOTAL_BUDGET, WEIGHTS } from '../data/baseline'
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '../data/categoryVisuals'
 import { PROJECTS } from '../data/projects'
 import { calculateAqls } from '../lib/calculateSimulation'
 import { fmt, fmtTenge } from '../lib/format'
 import { useI18n } from '../lib/i18n'
+import { localizedCityProblems } from '../lib/localizedContent'
 
 export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => void; hasDraft: boolean; onPenalties: () => void }) {
-  const { t, category, metric, cityProblems } = useI18n()
+  const { t, lang, category, metric, metricCompact } = useI18n()
   return (
     <main id="main" className="mx-auto max-w-[1500px] space-y-6 px-3 py-5 sm:px-6">
       <section className="hero rise px-6 py-12 sm:px-12 sm:py-16">
@@ -26,7 +27,7 @@ export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => v
           <p className="mt-5 text-base font-medium text-white/85 sm:text-lg">
             {t('start.youGot')}{' '}
             <span className="pill bg-white px-3 py-1 text-base font-bold text-accent">
-              {TOTAL_BUDGET} {t('start.budgetUnits')} · {fmtTenge(TOTAL_BUDGET)}
+              {TOTAL_BUDGET} {t('start.budgetUnits')} · {fmtTenge(TOTAL_BUDGET, lang)}
             </span>{' '}
             {t('start.lead')}
           </p>
@@ -53,7 +54,7 @@ export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => v
               </span>
               <span>
                 <span className="block font-semibold leading-tight">{category(c)}</span>
-                <span className="text-xs text-muted">{count} {t('sim.projects').toLowerCase()} · {t('start.projectsToChoose')}</span>
+                <span className="text-xs text-muted">{t('start.projectCount', { n: count })}</span>
               </span>
             </li>
           )
@@ -91,7 +92,7 @@ export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => v
           <Panel className="rise">
             <h2 className="mb-3 text-xl font-bold">{t('start.problems')}</h2>
             <ul className="space-y-2 text-sm">
-              {cityProblems().map((p) => (
+              {localizedCityProblems(lang).map((p) => (
                 <li key={p} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
                   <TriangleAlert aria-hidden className="size-4 shrink-0 text-serious" /> {p}
                 </li>
@@ -103,7 +104,7 @@ export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => v
             <ol className="space-y-2 text-sm text-ink-2">
               {[
                 t('start.rule1'),
-                t('start.rule2', { total: TOTAL_BUDGET, tenge: fmtTenge(TOTAL_BUDGET), unit: fmtTenge(1) }),
+                t('start.rule2', { total: TOTAL_BUDGET, tenge: fmtTenge(TOTAL_BUDGET, lang), unit: fmtTenge(1, lang) }),
                 t('start.rule3'),
                 t('start.rule4'),
                 t('start.rule5'),
@@ -122,8 +123,8 @@ export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => v
       </div>
       <DemoBadge />
       <p className="pb-4 text-center text-xs text-muted">
-        AQLS = Мобильность×0,25 + Экология×0,20 + Соц. комфорт×0,20 + Безопасность×0,20 + Сервисы×0,15 − штрафы · стартовое
-        значение {fmt(calculateAqls(BASELINE))}
+        AQLS = {METRICS.map((m) => `${metricCompact(m)} × ${Math.round(WEIGHTS[m] * 100)}%`).join(' + ')} − {t('result.penalties')}
+        {' · '}{t('start.initialValue', { value: fmt(calculateAqls(BASELINE), lang) })}
       </p>
     </main>
   )

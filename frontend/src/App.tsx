@@ -8,7 +8,8 @@ import { TopBar } from './components/TopBar'
 import { Tour } from './components/Tour'
 import { Button } from './components/ui'
 import { CATEGORIES } from './data/baseline'
-import { balancedBudgets, type AdvisorAction } from './lib/advisor'
+import type { AdvisorAction } from './lib/advisor'
+import { applyAssistantAction, validateAssistantAction } from './lib/assistant'
 import { allocatedTotal, calculateSimulation, toDecisions, validateDecisions } from './lib/calculateSimulation'
 import { useI18n } from './lib/i18n'
 import { emptyDraft, loadDraft, saveDraft } from './lib/storage'
@@ -80,29 +81,34 @@ export default function App() {
     setScreen('start')
   }
 
-  const onAdvisor = (a: AdvisorAction) => {
+  const onAdvisor = (candidate: AdvisorAction): boolean => {
+    const a = validateAssistantAction(candidate)
+    if (!a || (a.type === 'run' && issues.length > 0)) return false
     if (screen !== 'simulator') setScreen('simulator')
     switch (a.type) {
       case 'goto':
         setActiveCategory(a.category)
         break
       case 'select':
-        setDraft((d) => ({ ...d, [a.category]: { ...d[a.category], projectId: a.projectId } }))
+      case 'budget':
+        setDraft((d) => applyAssistantAction(d, a))
         setActiveCategory(a.category)
         break
       case 'balance':
-        setDraft((d) => balancedBudgets(d))
+      case 'plan':
+        setDraft((d) => applyAssistantAction(d, a))
         break
       case 'run':
         run()
         break
     }
+    return true
   }
 
   return (
     <>
       <a href="#main" className="skip-link">
-        К основному содержимому
+        {t('nav.skipContent')}
       </a>
       <TopBar current={screen} onNavigate={setScreen} canOpenResult={result !== null} onSettings={() => setSettingsOpen(true)}>
         {screen === 'simulator' && <BudgetHeader allocated={allocatedTotal(draft)} canRun={issues.length === 0} onRun={run} />}
@@ -135,7 +141,7 @@ export default function App() {
         <ResultPage result={result} onEdit={() => setScreen('simulator')} onRestart={reset} onPenalties={() => setPenaltiesOpen(true)} />
       )}
 
-      <Assistant draft={draft} onAction={onAdvisor} onStartTour={startTour} />
+      <Assistant draft={draft} screen={screen} onAction={onAdvisor} onStartTour={startTour} />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} onStartTour={startTour} onReset={reset} />
       <PenaltiesModal open={penaltiesOpen} onClose={() => setPenaltiesOpen(false)} draft={draft} />
       {tourOpen && <Tour open onClose={closeTour} />}

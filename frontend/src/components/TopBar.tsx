@@ -27,14 +27,14 @@ export function TopBar({
   return (
     <div className="sticky top-0 z-30 px-3 pt-3 sm:px-6">
       <header className="glass mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-3 py-2.5 sm:px-4">
-        <button onClick={() => onNavigate('start')} className="flex items-center gap-2.5 text-left" aria-label="На главную">
+        <button onClick={() => onNavigate('start')} className="flex items-center gap-2.5 text-left" aria-label={t('nav.goHome')}>
           <Logo />
           <span className="leading-tight">
             <span className="block text-sm font-extrabold tracking-tight">QALA BALANCE</span>
             <span className="block text-[11px] font-medium text-muted">{t('brand.sub')}</span>
           </span>
         </button>
-        <nav aria-label="Разделы" className="order-3 flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
+        <nav aria-label={t('nav.sections')} className="order-3 flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
           {items.map((it) => (
             <button
               key={it.id}

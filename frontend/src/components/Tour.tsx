@@ -1,19 +1,22 @@
 import { Bot } from 'lucide-react'
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
-import { TOUR_STEPS } from '../lib/texts'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { getTourSteps } from '../data/locales/tour'
 import { useI18n } from '../lib/i18n'
 
 /** Пошаговое обучение: затемнение с «окном» вокруг элемента и карточка помощника. Монтируется заново при каждом открытии. */
 export function Tour({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, lang } = useI18n()
-  const STEPS = TOUR_STEPS[lang]
+  const steps = useMemo(() => getTourSteps(lang), [lang])
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
-  const step = STEPS[i]
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [cardHeight, setCardHeight] = useState(260)
+  const step = steps[i]
 
   const measure = useCallback(() => {
     const el = step?.target ? document.querySelector(`[data-tour="${step.target}"]`) : null
     setRect(el ? el.getBoundingClientRect() : null)
+    if (cardRef.current) setCardHeight(cardRef.current.offsetHeight)
   }, [step])
 
   useLayoutEffect(() => {
@@ -36,24 +39,25 @@ export function Tour({ open, onClose }: { open: boolean; onClose: () => void }) 
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowRight') setI((x) => Math.min(STEPS.length - 1, x + 1))
+      if (e.key === 'ArrowRight') setI((x) => Math.min(steps.length - 1, x + 1))
       if (e.key === 'ArrowLeft') setI((x) => Math.max(0, x - 1))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose, STEPS.length])
+  }, [open, onClose, steps.length])
 
   if (!open || !step) return null
   const pad = 8
-  const last = i === STEPS.length - 1
+  const last = i === steps.length - 1
 
   // Карточка — под элементом, если есть место, иначе над ним; без цели — по центру.
   const cardW = Math.min(380, window.innerWidth - 24)
-  let cardStyle: React.CSSProperties = { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }
+  let cardStyle: React.CSSProperties = { left: (window.innerWidth - cardW) / 2, top: Math.max(12, (window.innerHeight - cardHeight) / 2) }
   if (rect) {
-    const below = rect.bottom + 16 + 230 < window.innerHeight
+    const below = rect.bottom + 16 + cardHeight < window.innerHeight - 12
     const left = Math.max(12, Math.min(window.innerWidth - cardW - 12, rect.left + rect.width / 2 - cardW / 2))
-    cardStyle = below ? { left, top: rect.bottom + 16 } : { left, top: Math.max(12, rect.top - 16 - 230) }
+    const desiredTop = below ? rect.bottom + 16 : rect.top - 16 - cardHeight
+    cardStyle = { left, top: Math.max(12, Math.min(window.innerHeight - cardHeight - 12, desiredTop)) }
   }
 
   return (
@@ -72,20 +76,20 @@ export function Tour({ open, onClose }: { open: boolean; onClose: () => void }) 
       ) : (
         <div className="absolute inset-0 bg-[rgba(18,17,23,0.62)]" />
       )}
-      <div key={i} className="rise absolute rounded-3xl border border-line bg-surface p-5 text-ink shadow-2xl" style={{ width: cardW, ...cardStyle }}>
+      <div key={i} ref={cardRef} className="rise absolute max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-3xl border border-line bg-surface p-5 text-ink shadow-2xl" style={{ width: cardW, ...cardStyle }}>
         <div className="mb-3 flex items-center gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-mint to-accent text-white">
             <Bot aria-hidden className="size-6" />
           </span>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted">{t('tour.step', { n: i + 1, total: STEPS.length })}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted">{t('tour.step', { n: i + 1, total: steps.length })}</p>
             <h2 className="font-extrabold leading-tight">{step.title}</h2>
           </div>
         </div>
         <p className="text-sm leading-relaxed text-ink-2">{step.text}</p>
-        <div className="mt-4 flex items-center gap-2">
-          <div className="flex flex-1 gap-1" aria-hidden>
-            {STEPS.map((_, k) => (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="flex w-full gap-1 sm:w-auto sm:flex-1" aria-hidden>
+            {steps.map((_, k) => (
               <span key={k} className={`h-1.5 rounded-full transition-all ${k === i ? 'w-5 bg-accent' : 'w-1.5 bg-grid'}`} />
             ))}
           </div>

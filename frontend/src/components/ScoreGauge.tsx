@@ -3,8 +3,9 @@ import { deltaTone, fmt, fmtDelta } from '../lib/format'
 import { useI18n } from '../lib/i18n'
 
 /** Крупный AQLS с анимацией изменения (п. 14.3). */
-export function ScoreGauge({ value, before, label = 'Astana Quality of Life Score' }: { value: number; before?: number; label?: string }) {
-  const { t } = useI18n()
+export function ScoreGauge({ value, before, label }: { value: number; before?: number; label?: string }) {
+  const { t, lang } = useI18n()
+  const scoreLabel = label ?? t('result.scoreLabel')
   const shown = useAnimatedNumber(value)
   const pct = Math.max(0, Math.min(100, shown))
   const delta = before === undefined ? null : value - before
@@ -14,22 +15,22 @@ export function ScoreGauge({ value, before, label = 'Astana Quality of Life Scor
         className="relative grid size-32 shrink-0 place-items-center rounded-full sm:size-36"
         style={{ background: `conic-gradient(var(--color-accent) ${pct * 3.6}deg, var(--color-accent-track) 0)` }}
         role="img"
-        aria-label={`${label}: ${fmt(value)} из 100`}
+        aria-label={t('result.scoreOf', { label: scoreLabel, value: fmt(value, lang) })}
       >
         <div className="grid size-[82%] place-items-center rounded-full bg-surface">
-          <span className="font-mono text-4xl font-bold tabular-nums sm:text-5xl">{fmt(shown)}</span>
+          <span className="font-mono text-4xl font-bold tabular-nums sm:text-5xl">{fmt(shown, lang)}</span>
         </div>
       </div>
       <div>
-        <p className="kicker">{label}</p>
+        <p className="kicker">{scoreLabel}</p>
         {before !== undefined && (
           <p className="mt-1 font-mono text-lg tabular-nums text-ink-2">
-            {fmt(before)} → {fmt(value)}
+            {fmt(before, lang)} → {fmt(value, lang)}
           </p>
         )}
         {delta !== null && (
           <p className={`font-mono text-2xl font-bold tabular-nums ${deltaTone(delta)}`}>
-            {fmtDelta(delta)} <span className="text-sm font-normal">{t('result.points')}</span>
+            {fmtDelta(delta, lang)} <span className="text-sm font-normal">{t('result.points')}</span>
           </p>
         )}
         <p className="mt-1 text-xs text-muted">{t('result.scale')}</p>

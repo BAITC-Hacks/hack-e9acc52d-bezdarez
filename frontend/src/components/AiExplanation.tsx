@@ -1,7 +1,7 @@
 import { AlertTriangle, BarChart3, CheckCircle2, Info, Lightbulb, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { buildAiPayload } from '../lib/buildAiPayload'
-import { requestExplanation, type ExplainOutcome } from '../lib/explainApi'
+import { explanationFailureMessage, requestExplanation, type ExplainOutcome } from '../lib/explainApi'
 import { generateFallbackExplanation } from '../lib/generateFallbackExplanation'
 import type { AiExplanation as Explanation } from '../types/ai'
 import type { Horizon, SimulationResult } from '../types/simulation'
@@ -22,8 +22,8 @@ export function AiExplanation({ result, horizon }: { result: SimulationResult; h
 
   useEffect(() => {
     const ctrl = new AbortController()
-    requestExplanation(buildAiPayload(result, horizon), ctrl.signal, lang)
-      .then((outcome) => setState({ key, outcome }))
+    requestExplanation(buildAiPayload(result, horizon, lang), ctrl.signal, lang)
+      .then((outcome) => { if (!ctrl.signal.aborted) setState({ key, outcome }) })
       .catch(() => {})
     return () => ctrl.abort()
   }, [key, result, horizon, lang])
@@ -50,7 +50,7 @@ export function AiExplanation({ result, horizon }: { result: SimulationResult; h
               {loading ? t('ai.loading') : isAi ? t('ai.byModel', { model: outcome.model ?? '' }) : t('ai.bySystem')}
             </p>
           </div>
-          {loading && <Loader2 aria-label="Загрузка" className="size-5 animate-spin text-accent" />}
+          {loading && <Loader2 aria-label={t('ai.loading')} className="size-5 animate-spin text-accent" />}
           {outcome?.source === 'fallback' && (
             <button
               onClick={() => setAttempt((a) => a + 1)}
@@ -67,7 +67,7 @@ export function AiExplanation({ result, horizon }: { result: SimulationResult; h
               <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-accent" />
               <span>
                 {t('ai.unavailable')}
-                <span className="block text-xs text-muted">{t('ai.reason')}: {outcome.reason}</span>
+                <span className="block text-xs text-muted">{t('ai.reason')}: {explanationFailureMessage(outcome.reason, lang)}</span>
               </span>
             </p>
           )}

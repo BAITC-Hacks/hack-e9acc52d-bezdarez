@@ -2,15 +2,19 @@ import { BASELINE, CATEGORIES, CATEGORY_LABELS, CATEGORY_MAX_BUDGET, CATEGORY_MI
 import { PROJECTS, PROJECTS_BY_ID } from '../data/projects'
 import { SYNERGIES } from '../data/synergies'
 import type { Category, Metric } from '../types/project'
-import type { DraftDecisions } from '../types/simulation'
+import type { DraftDecisions, SelectedDecision } from '../types/simulation'
 import { HIGH_BUDGET_THRESHOLD, LOW_BUDGET_THRESHOLD } from './calculatePenalties'
 import { allocatedTotal, calculateSimulation, num, toDecisions } from './calculateSimulation'
 import { fmtTenge } from './format'
+import { localizedCategory, localizedMetric, type Lang } from './i18n'
+import { localizeProject, localizeSynergy } from './localizedContent'
 
 /** Действие, которое помощник может выполнить сам по кнопке «Применить». */
 export type AdvisorAction =
   | { type: 'goto'; category: Category }
   | { type: 'select'; category: Category; projectId: string }
+  | { type: 'budget'; category: Category; amount: number }
+  | { type: 'plan'; decisions: SelectedDecision[] }
   | { type: 'balance' }
   | { type: 'run' }
 
@@ -41,7 +45,11 @@ export function balancedBudgets(draft: DraftDecisions): DraftDecisions {
 }
 
 /** Контекстные советы по текущему черновику. Детерминированы — работают без AI. */
-export function adviseDraft(draft: DraftDecisions): Tip[] {
+export function adviseDraft(draft: DraftDecisions, lang: Lang = 'ru'): Tip[] {
+  const say = (ru: string, kk: string, en: string) => ({ ru, kk, en })[lang]
+  const cat = (c: Category) => localizedCategory(c, lang)
+  const amount = (v: number) => lang === 'en' ? num(v).replace(',', '.') : num(v)
+  const money = (v: number) => lang === 'en' ? `${v * 2} bn ₸` : fmtTenge(v)
   const tips: Tip[] = []
   const missing = CATEGORIES.filter((c) => !draft[c].projectId)
   const chosen = new Set(CATEGORIES.map((c) => draft[c].projectId).filter(Boolean) as string[])
@@ -50,15 +58,15 @@ export function adviseDraft(draft: DraftDecisions): Tip[] {
     tips.push({
       id: 'start',
       tone: 'info',
-      text: 'Начните с транспорта: у него самый большой вес в AQLS (25%). Выберите по одному проекту в каждой из пяти сфер.',
-      action: { label: 'К транспорту', do: { type: 'goto', category: 'transport' } },
+      text: say('Начните с транспорта: у него самый большой вес в AQLS (25%). Выберите по одному проекту в каждой из пяти сфер.', 'Көлік саласынан бастаңыз: оның AQLS-тегі үлесі ең жоғары (25%). Бес саланың әрқайсысынан бір жобаны таңдаңыз.', 'Start with transport: it has the largest weight in AQLS (25%). Choose one project in each of the five areas.'),
+      action: { label: say('К транспорту', 'Көлік саласына өту', 'Go to transport'), do: { type: 'goto', category: 'transport' } },
     })
   } else if (missing.length > 0) {
     tips.push({
       id: 'missing',
       tone: 'warn',
-      text: `Осталось выбрать проекты: ${missing.map((c) => `«${CATEGORY_LABELS[c]}»`).join(', ')}.`,
-      action: { label: 'Перейти', do: { type: 'goto', category: missing[0] } },
+      text: say('Осталось выбрать проекты: ', 'Жоба таңдау қажет салалар: ', 'Choose projects for: ') + missing.map((c) => `«${cat(c)}»`).join(', ') + '.',
+      action: { label: say('Перейти', 'Өту', 'Open area'), do: { type: 'goto', category: missing[0] } },
     })
   }
 
@@ -68,12 +76,13 @@ export function adviseDraft(draft: DraftDecisions): Tip[] {
     const have = chosen.has(a) ? a : chosen.has(b) ? b : null
     const partner = have === a ? b : have === b ? a : null
     if (!have || !partner || chosen.has(partner)) continue
-    const p = PROJECTS_BY_ID[partner]
+    const p = localizeProject(PROJECTS_BY_ID[partner], lang)
+    const description = localizeSynergy(syn, lang).description
     tips.push({
       id: `syn-${syn.id}`,
       tone: 'good',
-      text: `Синергия рядом: добавьте «${p.title}» в сфере «${CATEGORY_LABELS[p.category]}» — ${syn.description.split(': ')[1]}.`,
-      action: { label: 'Выбрать', do: { type: 'select', category: p.category, projectId: partner } },
+      text: say(`Синергия рядом: добавьте «${p.title}» в сфере «${cat(p.category)}» — ${description.split(': ')[1]}.`, `Қосымша әсер алу үшін «${cat(p.category)}» саласындағы «${p.title}» жобасын таңдаңыз. ${description}.`, `Add “${p.title}” in ${cat(p.category)} to unlock a synergy. ${description}.`),
+      action: { label: say('Выбрать', 'Таңдау', 'Select'), do: { type: 'select', category: p.category, projectId: partner } },
     })
     if (tips.filter((t) => t.id.startsWith('syn-')).length >= 2) break
   }
@@ -88,16 +97,16 @@ export function adviseDraft(draft: DraftDecisions): Tip[] {
       tone: 'warn',
       text:
         total < TOTAL_BUDGET
-          ? `Не распределено ${TOTAL_BUDGET - total} ед. (${fmtTenge(TOTAL_BUDGET - total)}). Могу разложить бюджет по рекомендуемым суммам проектов.`
-          : `Бюджет превышен на ${total - TOTAL_BUDGET} ед. (${fmtTenge(total - TOTAL_BUDGET)}). Могу выровнять его по рекомендациям.`,
-      action: { label: 'Выровнять', do: { type: 'balance' } },
+          ? say(`Не распределено ${TOTAL_BUDGET - total} ед. (${money(TOTAL_BUDGET - total)}). Могу разложить бюджет по рекомендуемым суммам проектов.`, `${TOTAL_BUDGET - total} бірлік (${money(TOTAL_BUDGET - total)}) әлі бөлінбеген. Бюджетті жобаларға ұсынылған қаржы мөлшеріне сай бөле аламын.`, `${TOTAL_BUDGET - total} units (${money(TOTAL_BUDGET - total)}) remain unallocated. I can distribute the budget using the projects' recommended amounts.`)
+          : say(`Бюджет превышен на ${total - TOTAL_BUDGET} ед. (${money(total - TOTAL_BUDGET)}). Могу выровнять его по рекомендациям.`, `Бюджет ${total - TOTAL_BUDGET} бірлікке (${money(total - TOTAL_BUDGET)}) асып кетті. Оны ұсынылған қаржы мөлшеріне сай теңестіре аламын.`, `The budget is over by ${total - TOTAL_BUDGET} units (${money(total - TOTAL_BUDGET)}). I can balance it using the recommended amounts.`),
+      action: { label: say('Выровнять', 'Теңестіру', 'Balance budget'), do: { type: 'balance' } },
     })
   } else if (skewed.length) {
     tips.push({
       id: 'skew',
       tone: 'warn',
-      text: `Штраф за перекос: ${skewed.map((c) => `«${CATEGORY_LABELS[c]}» — ${draft[c].allocatedBudget} ед.`).join(', ')}. Держите каждую сферу в пределах 10–30 ед.`,
-      action: { label: 'Выровнять', do: { type: 'balance' } },
+      text: say('Штраф за перекос: ', 'Бюджет теңгерімсіздігі үшін шегерім: ', 'Budget imbalance penalty: ') + skewed.map((c) => `«${cat(c)}» — ${draft[c].allocatedBudget}`).join(', ') + say('. Держите каждую сферу в пределах 10–30 ед.', '. Әр салаға 10–30 бірлік бөлген дұрыс.', '. Keep each area within 10–30 units.'),
+      action: { label: say('Выровнять', 'Теңестіру', 'Balance budget'), do: { type: 'balance' } },
     })
   }
 
@@ -111,14 +120,14 @@ export function adviseDraft(draft: DraftDecisions): Tip[] {
       tips.push({
         id: 'weak',
         tone: 'info',
-        text: `Слабее всего растёт «${METRIC_LABELS[weakest.m]}» (+${num(weakest.d)}). Сильнее всего её поднимает «${best.title}» (+${best.effects[weakest.m]}) в сфере «${CATEGORY_LABELS[best.category]}».`,
-        action: { label: 'Выбрать', do: { type: 'select', category: best.category, projectId: best.id } },
+        text: say(`Слабее всего растёт «${localizedMetric(weakest.m, lang)}» (${weakest.d >= 0 ? '+' : ''}${amount(weakest.d)}). Один из лучших вариантов по эффекту на единицу бюджета — «${localizeProject(best, lang).title}» (+${best.effects[weakest.m]}) в сфере «${cat(best.category)}».`, `Ең аз өсім «${localizedMetric(weakest.m, lang)}» көрсеткішінде (${weakest.d >= 0 ? '+' : ''}${amount(weakest.d)}). Бір бюджет бірлігіне шаққандағы тиімді нұсқалардың бірі — «${cat(best.category)}» саласындағы «${localizeProject(best, lang).title}» жобасы (+${best.effects[weakest.m]}).`, `${localizedMetric(weakest.m, lang)} has the smallest gain (${weakest.d >= 0 ? '+' : ''}${amount(weakest.d)}). One of the strongest options per budget unit is “${localizeProject(best, lang).title}” (+${best.effects[weakest.m]}) in ${cat(best.category)}.`),
+        action: { label: say('Выбрать', 'Таңдау', 'Select'), do: { type: 'select', category: best.category, projectId: best.id } },
       })
     }
   }
 
   if (missing.length === 0 && total === TOTAL_BUDGET && !skewed.length) {
-    tips.unshift({ id: 'ready', tone: 'good', text: 'Всё готово: пять проектов, ровно 100 ед., без перекосов. Запускайте симуляцию!', action: { label: 'Запустить', do: { type: 'run' } } })
+    tips.unshift({ id: 'ready', tone: 'good', text: say('Всё готово: пять проектов, ровно 100 ед., без перекосов. Запускайте симуляцию!', 'Бәрі дайын: бес жоба таңдалған, дәл 100 бірлік бөлінген, теңгерімсіздік жоқ. Симуляцияны іске қосыңыз!', 'Everything is ready: five projects, exactly 100 units, and no budget imbalance. Run the simulation!'), action: { label: say('Запустить', 'Іске қосу', 'Run simulation'), do: { type: 'run' } } })
   }
   return tips.slice(0, 4)
 }

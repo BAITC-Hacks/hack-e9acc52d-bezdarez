@@ -1,4 +1,4 @@
-import { CATEGORY_LABELS, CATEGORY_MAX_BUDGET, CATEGORY_MIN_BUDGET } from '../data/baseline'
+import { CATEGORY_MAX_BUDGET, CATEGORY_MIN_BUDGET } from '../data/baseline'
 import { CATEGORY_COLORS } from '../data/categoryVisuals'
 import { HIGH_BUDGET_THRESHOLD, LOW_BUDGET_THRESHOLD } from '../lib/calculatePenalties'
 import { fmtTenge } from '../lib/format'
@@ -16,7 +16,7 @@ export function BudgetSlider({
   recommended?: number
   onChange: (v: number) => void
 }) {
-  const { t, category: catLabel } = useI18n()
+  const { t, lang, category: catLabel } = useI18n()
   const id = `budget-${category}`
   const set = (raw: number) => {
     if (!Number.isFinite(raw)) return
@@ -24,9 +24,9 @@ export function BudgetSlider({
   }
   const warn =
     value < LOW_BUDGET_THRESHOLD
-      ? `меньше ${LOW_BUDGET_THRESHOLD} — штраф за несбалансированность`
+      ? t('budget.belowThreshold', { n: LOW_BUDGET_THRESHOLD })
       : value > HIGH_BUDGET_THRESHOLD
-        ? `больше ${HIGH_BUDGET_THRESHOLD} — штраф за несбалансированность`
+        ? t('budget.aboveThreshold', { n: HIGH_BUDGET_THRESHOLD })
         : null
   return (
     <div>
@@ -41,7 +41,7 @@ export function BudgetSlider({
           max={CATEGORY_MAX_BUDGET}
           value={value}
           onChange={(e) => set(e.target.valueAsNumber)}
-          aria-label={`Бюджет: ${CATEGORY_LABELS[category]}`}
+          aria-label={t('budget.categoryLabel', { category: catLabel(category) })}
           className="w-16 rounded-lg border border-line bg-surface px-2 py-1 text-right font-mono text-sm tabular-nums"
         />
       </div>
@@ -58,7 +58,7 @@ export function BudgetSlider({
       <p className="flex justify-between text-xs text-muted">
         <span>{CATEGORY_MIN_BUDGET}</span>
         <span className="font-semibold text-ink-2">
-          {fmtTenge(value)}
+          {fmtTenge(value, lang)}
           {recommended !== undefined && <span className="font-normal text-muted"> · {t('budget.recommendedShort')} {recommended} {t('budget.units')}</span>}
         </span>
         <span>{CATEGORY_MAX_BUDGET}</span>

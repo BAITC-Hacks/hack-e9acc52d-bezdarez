@@ -14,6 +14,7 @@ import { deltaTone, fmt, fmtDelta } from '../lib/format'
 import type { Category } from '../types/project'
 import type { DraftDecisions, ValidationIssue } from '../types/simulation'
 import { useI18n } from '../lib/i18n'
+import { localizedSynergyDescription } from '../lib/localizedContent'
 
 export function SimulatorPage({
   draft,
@@ -30,7 +31,7 @@ export function SimulatorPage({
   onActiveChange: (c: Category) => void
   onPenalties: () => void
 }) {
-  const { t, category, synergy } = useI18n()
+  const { t, lang, category } = useI18n()
   // Предварительный прогноз по уже выбранным проектам — считается локально при каждом движении ползунка.
   const preview = useMemo(() => {
     const decisions = toDecisions(draft)
@@ -107,19 +108,19 @@ export function SimulatorPage({
             <Kicker>{t('sim.forecast')}</Kicker>
             {preview ? (
               <p className="font-mono text-3xl font-bold tabular-nums">
-                {fmt(calculateAqls(BASELINE))} → {fmt(preview.overallAfterOneYear)}{' '}
+                {fmt(calculateAqls(BASELINE), lang)} → {fmt(preview.overallAfterOneYear, lang)}{' '}
                 <span className={`text-lg ${deltaTone(preview.overallAfterOneYear - preview.overallBefore)}`}>
-                  {fmtDelta(preview.overallAfterOneYear - preview.overallBefore)}
+                  {fmtDelta(preview.overallAfterOneYear - preview.overallBefore, lang)}
                 </span>
               </p>
             ) : (
               <p className="text-sm text-muted">{t('sim.pickOne')}</p>
             )}
-            <ScoreRadarChart before={BASELINE} after={preview?.afterOneYear} afterLabel="Прогноз" />
+            <ScoreRadarChart before={BASELINE} after={preview?.afterOneYear} afterLabel={t('sim.forecastLabel')} />
             {preview && preview.appliedSynergies.length > 0 && (
               <ul className="mt-1 space-y-1 text-xs text-good-ink">
-                {preview.appliedSynergyIds.map((id, k) => (
-                  <li key={id}>✦ {synergy(id, preview.appliedSynergies[k])}</li>
+                {preview.appliedSynergies.map((s) => (
+                  <li key={s}>✦ {localizedSynergyDescription(s, lang)}</li>
                 ))}
               </ul>
             )}

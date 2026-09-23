@@ -8,11 +8,11 @@ import { ScoreRadarChart } from '../components/ScoreRadarChart'
 import { StrategyProfile } from '../components/StrategyProfile'
 import { Button, DemoBadge, Kicker, Panel } from '../components/ui'
 import { outcomeFor } from '../lib/calculateSimulation'
-import { PROJECTS_BY_ID } from '../data/projects'
-import { penaltyText } from '../lib/texts'
 import { fmt, fmtTenge } from '../lib/format'
 import type { Horizon, SimulationResult } from '../types/simulation'
 import { useI18n } from '../lib/i18n'
+import { localizePenalty, localizeProject, localizedSynergyDescription } from '../lib/localizedContent'
+import { PROJECTS_BY_ID } from '../data/projects'
 
 export function ResultPage({
   result,
@@ -25,7 +25,7 @@ export function ResultPage({
   onRestart: () => void
   onPenalties: () => void
 }) {
-  const { t, category, project, synergy, lang } = useI18n()
+  const { t, lang, category } = useI18n()
   const [horizon, setHorizon] = useState<Horizon>('1y')
   const outcome = outcomeFor(result, horizon)
 
@@ -33,7 +33,7 @@ export function ResultPage({
     <main id="main" className="mx-auto max-w-6xl space-y-5 px-3 py-5 sm:px-6">
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('result.title')}</h1>
-        <div role="radiogroup" aria-label="Горизонт планирования" className="ml-auto flex rounded-2xl border border-line bg-surface p-1 shadow-sm">
+        <div role="radiogroup" aria-label={t('result.horizon')} className="ml-auto flex rounded-2xl border border-line bg-surface p-1 shadow-sm">
           {(['1y', '3y'] as const).map((h) => (
             <button
               key={h}
@@ -55,7 +55,7 @@ export function ResultPage({
         <Panel className="rise">
           <ScoreGauge value={outcome.overall} before={result.overallBefore} />
           {outcome.penaltyTotal > 0 && (
-            <p className="mt-3 text-sm text-warn">{t('result.penaltiesTotal', { points: fmt(outcome.penaltyTotal) })}</p>
+            <p className="mt-3 text-sm text-warn">{t('result.penaltiesTotal', { points: fmt(outcome.penaltyTotal, lang) })}</p>
           )}
           <div className="mt-4 border-t border-line pt-4">
             <StrategyProfile profile={result.strategyProfile} />
@@ -79,14 +79,14 @@ export function ResultPage({
           <Kicker>{t('result.selectedProjects')}</Kicker>
           <ul className="space-y-2 text-sm">
             {result.contributions.map((c) => (
-              <li key={c.projectId} className="flex items-baseline gap-2">
-                <span className="w-32 shrink-0 text-xs text-muted">{category(c.category)}</span>
-                <span className="flex-1">{project(PROJECTS_BY_ID[c.projectId]).title}</span>
+              <li key={c.projectId} className="flex flex-wrap items-baseline gap-2 sm:flex-nowrap">
+                <span className="w-full shrink-0 text-xs text-muted sm:w-32">{category(c.category)}</span>
+                <span className="min-w-0 flex-1">{localizeProject(PROJECTS_BY_ID[c.projectId], lang).title}</span>
                 <span className="text-right tabular-nums">
-                  <span className="block font-semibold">{fmtTenge(c.allocatedBudget)}</span>
+                  <span className="block font-semibold">{fmtTenge(c.allocatedBudget, lang)}</span>
                   <span className="block text-xs text-muted">{c.allocatedBudget} {t('budget.units')}</span>
                 </span>
-                <span className="w-14 text-right font-mono text-xs tabular-nums text-ink-2" title="Эффективность вложений">
+                <span className="w-14 text-right font-mono text-xs tabular-nums text-ink-2" title={t('result.efficiency')}>
                   {Math.round(c.efficiency * 100)}%
                 </span>
               </li>
@@ -99,14 +99,14 @@ export function ResultPage({
             <p className="text-sm text-muted">{t('result.noSynergies')}</p>
           )}
           <ul className="space-y-1.5 text-sm">
-            {result.appliedSynergyIds.map((id, k) => (
-              <li key={id} className="flex gap-2 text-good-ink">
-                <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0" /> {synergy(id, result.appliedSynergies[k])}
+            {result.appliedSynergies.map((s) => (
+              <li key={s} className="flex gap-2 text-good-ink">
+                <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0" /> {localizedSynergyDescription(s, lang)}
               </li>
             ))}
             {outcome.penalties.map((p) => (
               <li key={p.description} className="text-warn">
-                − {penaltyText(p, lang, category)}
+                − {localizePenalty(p, lang).description}
               </li>
             ))}
           </ul>

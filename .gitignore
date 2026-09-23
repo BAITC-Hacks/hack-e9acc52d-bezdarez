@@ -16,6 +16,9 @@ htmlcov/
 
 # Frontend
 node_modules/
+.npm-cache/
+.playwright-cli/
+**/output/playwright/
 dist/
 dist-ssr/
 *.tsbuildinfo
@@ -27,6 +30,7 @@ test-results/
 .codebase-memory/
 .docker-local/
 .artifacts/
+.local-ai/
 *.log
 .DS_Store
 Thumbs.db

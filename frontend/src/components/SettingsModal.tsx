@@ -64,14 +64,15 @@ export function SettingsModal({
 
         <section>
           <h3 className="kicker mb-2.5">{t('settings.language')}</h3>
-          <div role="radiogroup" aria-label={t('settings.language')} className="grid grid-cols-3 gap-2">
+          <div role="radiogroup" aria-label={t('settings.language')} className="grid gap-2 sm:grid-cols-3">
             {langs.map((l) => (
               <button
                 key={l.id}
                 role="radio"
                 aria-checked={lang === l.id}
+                lang={l.id}
                 onClick={() => setLang(l.id)}
-                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                className={`flex items-center gap-2 rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition ${
                   lang === l.id ? 'border-accent bg-accent-track text-good-ink' : 'border-line bg-surface-2 hover:border-accent/40'
                 }`}
               >
@@ -79,7 +80,6 @@ export function SettingsModal({
               </button>
             ))}
           </div>
-          
         </section>
 
         <section className="flex items-center gap-3 rounded-2xl bg-surface-2 p-4">

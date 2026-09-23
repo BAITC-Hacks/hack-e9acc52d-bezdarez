@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useI18n } from '../lib/i18n'
 
 /** Доступное модальное окно на <dialog>: Esc и клик по фону закрывают, фокус остаётся внутри. */
 export function Modal({
@@ -15,6 +16,7 @@ export function Modal({
   children: ReactNode
   wide?: boolean
 }) {
+  const { t } = useI18n()
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const d = ref.current
@@ -39,7 +41,7 @@ export function Modal({
             <h2 id="modal-title" className="flex-1 text-lg font-extrabold">
               {title}
             </h2>
-            <button onClick={onClose} aria-label="Закрыть" className="grid size-9 place-items-center rounded-xl bg-surface-2 text-ink-2 hover:text-ink">
+            <button onClick={onClose} aria-label={t('settings.close')} className="grid size-9 place-items-center rounded-xl bg-surface-2 text-ink-2 hover:text-ink">
               <X aria-hidden className="size-5" />
             </button>
           </header>

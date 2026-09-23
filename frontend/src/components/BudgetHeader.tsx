@@ -29,12 +29,12 @@ export function BudgetHeader({ allocated, canRun, onRun }: { allocated: number; 
 }
 
 function Stat({ label, value, tone = 'bg-surface-2 text-ink', className = 'flex' }: { label: string; value: number; tone?: string; className?: string }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   return (
     <div className={`${className} flex-col rounded-xl px-2.5 py-1 leading-tight ${tone}`}>
       <dt className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</dt>
       <dd className="text-base font-bold">
-        {value} <span className="text-[11px] font-semibold opacity-70">{t('budget.units')} · {fmtTenge(Math.abs(value))}</span>
+        {value} <span className="text-[11px] font-semibold opacity-70">{t('budget.units')} · {fmtTenge(Math.abs(value), lang)}</span>
       </dd>
     </div>
   )
