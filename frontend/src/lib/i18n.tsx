@@ -1,7 +1,20 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Category, Metric } from '../types/project'
+import { CITY_PROBLEMS } from '../data/baseline'
+import type { District } from '../data/districts'
+import {
+  CITY_PROBLEMS_TEXT,
+  DISTRICT_TEXT,
+  PROFILE_TEXT,
+  PROJECT_TEXT,
+  SYNERGY_TEXT,
+  type DistrictText,
+  type ProjectText,
+} from '../data/translations'
+import type { Category, CityProject, Metric } from '../types/project'
+import { CATEGORY_LABELS_I18N, METRIC_LABELS_I18N } from '../data/translations'
 
-export type Lang = 'ru' | 'kk'
+import type { Lang } from '../data/translations'
+export type { Lang }
 export type Theme = 'light' | 'dark' | 'system'
 
 const ru = {
@@ -276,7 +289,7 @@ const kk: Record<I18nKey, string> = {
   'settings.tourStart': 'Оқытудан өту',
   'settings.reset': 'Шешімдерді тазалау',
   'settings.resetText': 'Осы браузерде сақталған жобалар мен бюджет таңдауын жою.',
-  'settings.kkNote': 'Жобалар каталогы мен талдау мәтіндері әзірге орыс тілінде.',
+  'settings.kkNote': '',
   'settings.close': 'Жабу',
   'settings.api': 'AI-сервис',
   'settings.apiOn': 'Қосылған: {model}',
@@ -302,17 +315,143 @@ const kk: Record<I18nKey, string> = {
   'issue.over_budget': 'Бюджет {n} бірлікке асып кетті. Бір немесе бірнеше бағыттың қаржысын азайтыңыз.',
 }
 
-const METRIC_LABELS_I18N: Record<Lang, Record<Metric, string>> = {
-  ru: { mobility: 'Мобильность', ecology: 'Экология', social: 'Социальный комфорт', safety: 'Безопасность', services: 'Городские сервисы' },
-  kk: { mobility: 'Мобильділік', ecology: 'Экология', social: 'Әлеуметтік жайлылық', safety: 'Қауіпсіздік', services: 'Қалалық сервистер' },
+const en: Record<I18nKey, string> = {
+  "nav.home": "Home",
+  "nav.simulator": "Simulator",
+  "nav.result": "Result",
+  "nav.settings": "Settings",
+  "nav.tour": "Tutorial",
+  "nav.start": "Start governing",
+  "nav.continue": "Continue governing",
+  "nav.edit": "Change decisions",
+  "nav.restart": "Start over",
+  "nav.run": "Run simulation",
+  "nav.runShort": "Run",
+  "brand.sub": "Akim for 5 hours",
+  "budget.total": "Budget",
+  "budget.allocated": "Allocated",
+  "budget.left": "Left",
+  "budget.over": "Over",
+  "budget.units": "u.",
+  "budget.fixErrors": "Fix the allocation errors",
+  "budget.distribution": "Budget allocation",
+  "budget.byRecommended": "By recommendations",
+  "budget.recommendedShort": "rec.",
+  "start.chip": "AI city budget simulator",
+  "start.title": "Akim for 5 hours",
+  "start.youGot": "You have",
+  "start.budgetUnits": "budget units",
+  "start.lead": "Split them across five areas, choose projects and see how your decisions change the quality of life in a virtual city.",
+  "start.noReg": "No sign-up · about 3 minutes",
+  "start.projectsToChoose": "to choose from",
+  "start.initialState": "Initial state of the city",
+  "start.beforeDecisions": "before your decisions",
+  "start.startAqls": "Starting AQLS",
+  "start.problems": "City problems",
+  "start.rules": "Rules",
+  "start.rule1": "Choose exactly one project in each of the five areas.",
+  "start.rule2": "Allocate exactly {total} units ({tenge}, 1 u. = {unit}): 5 to 40 per area.",
+  "start.rule3": "Less than 10 or more than 30 units per area is penalised as an imbalance.",
+  "start.rule4": "Impact grows slower than budget: overspending adds at most +15%.",
+  "start.rule5": "Compare the result after 1 year and after 3 years.",
+  "start.penaltyRules": "How penalties work",
+  "sim.direction": "Area {n} of {total}",
+  "sim.back": "Back",
+  "sim.next": "Next",
+  "sim.forecast": "Preliminary forecast · 1 year",
+  "sim.pickOne": "Choose at least one project to see a forecast.",
+  "sim.toFix": "What to fix",
+  "sim.notSelected": "No project selected",
+  "sim.projects": "Projects",
+  "card.min": "Min",
+  "card.rec": "Recommended",
+  "card.max": "Max",
+  "card.select": "Choose project",
+  "card.selected": "Selected",
+  "card.risk": "Risk",
+  "card.in3y": "after 3 years",
+  "card.maintenance": "Maintenance",
+  "speed.fast": "Quick impact",
+  "speed.medium": "Medium term",
+  "speed.slow": "Long term",
+  "result.title": "Simulation result",
+  "result.in1y": "After 1 year",
+  "result.in3y": "After 3 years",
+  "result.1y": "1 year",
+  "result.3y": "3 years",
+  "result.cityProfile": "City profile",
+  "result.beforeAfter": "Before and after",
+  "result.selectedProjects": "Selected projects",
+  "result.synergiesPenalties": "Synergies and penalties",
+  "result.noSynergies": "No synergies or penalties.",
+  "result.penaltiesTotal": "Penalties: −{points} points (included in AQLS)",
+  "result.penaltyDetails": "Penalty details",
+  "result.districtEffect": "Impact by district",
+  "result.yourProfile": "Your profile",
+  "result.profileNote": "Determined by an algorithm from your budget split, not by a language model.",
+  "result.points": "points",
+  "result.scale": "Scale 0–100 · model indicator",
+  "ai.titleAi": "AI explanation",
+  "ai.titleSystem": "Impact breakdown",
+  "ai.loading": "AI is analysing the computed result…",
+  "ai.byModel": "Generated by {model} from computed data only",
+  "ai.bySystem": "Generated by the system from computed data",
+  "ai.retry": "Retry AI",
+  "ai.unavailable": "The AI explanation is temporarily unavailable. Showing the system-generated explanation.",
+  "ai.reason": "Reason",
+  "ai.positives": "Positive effects",
+  "ai.risks": "Risks and trade-offs",
+  "ai.recommendation": "Recommendation",
+  "ai.disclaimer": "The AI only receives values computed by the system and never changes scores. The model is a demo, not a forecast for Astana.",
+  "ai.citizens": "What residents say",
+  "map.title": "Astana district map",
+  "map.hint": "Hover over a district or pick it with the buttons below",
+  "map.index": "District index",
+  "map.district": "District",
+  "map.districtIndex": "district index",
+  "map.problems": "District problems",
+  "map.vsCity": "vs city",
+  "map.eqCity": "= city",
+  "map.river": "Esil river",
+  "map.note": "District boundaries © OpenStreetMap contributors (ODbL). District indicators and problems are demo data, not official statistics.",
+  "map.noteAfter": " District impact is a visual projection of the city result weighted by each district’s needs.",
+  "demo.short": "Demo data — not an official assessment of Astana",
+  "demo.long": "All indicators, coefficients and results are model and demo values. This is not an official assessment or forecast for the city of Astana.",
+  "settings.title": "Settings",
+  "settings.theme": "Theme",
+  "settings.light": "Light",
+  "settings.dark": "Dark",
+  "settings.system": "System",
+  "settings.language": "Interface language",
+  "settings.tour": "Tutorial",
+  "settings.tourText": "A step-by-step tour of the simulator with the AI assistant.",
+  "settings.tourStart": "Take the tutorial",
+  "settings.reset": "Reset decisions",
+  "settings.resetText": "Delete the saved project and budget choices in this browser.",
+  "settings.kkNote": "",
+  "settings.close": "Close",
+  "settings.api": "AI service",
+  "settings.apiOn": "Connected: {model}",
+  "settings.apiOff": "Not connected — using system analytics",
+  "assistant.title": "AI assistant",
+  "assistant.subtitle": "I’ll suggest what to do next",
+  "assistant.ask": "Ask",
+  "assistant.placeholder": "E.g.: how can I improve ecology?",
+  "assistant.tour": "Take the tutorial",
+  "assistant.thinking": "Thinking…",
+  "tour.skip": "Skip",
+  "tour.next": "Next",
+  "tour.back": "Back",
+  "tour.done": "Got it, let’s go!",
+  "tour.step": "Step {n} of {total}",
+  "penalty.title": "Penalties and limits",
+  "issue.missing_project": "Choose a project in «{category}».",
+  "issue.category_range": "The budget for «{category}» must be between 5 and 40 units.",
+  "issue.under_budget": "Allocate {n} more budget units.",
+  "issue.over_budget": "Budget exceeded by {n} units. Reduce funding for one or more areas.",
 }
 
-const CATEGORY_LABELS_I18N: Record<Lang, Record<Category, string>> = {
-  ru: { transport: 'Транспорт', greening: 'Озеленение', social: 'Социальная сфера', safety: 'Безопасность', services: 'Городские сервисы' },
-  kk: { transport: 'Көлік', greening: 'Көгалдандыру', social: 'Әлеуметтік сала', safety: 'Қауіпсіздік', services: 'Қалалық сервистер' },
-}
-
-const DICTS: Record<Lang, Record<I18nKey, string>> = { ru, kk }
+const DICTS: Record<Lang, Record<I18nKey, string>> = { ru, kk, en }
 
 interface Settings {
   lang: Lang
@@ -323,6 +462,12 @@ interface I18nValue extends Settings {
   t: (key: I18nKey, vars?: Record<string, string | number>) => string
   metric: (m: Metric) => string
   category: (c: Category) => string
+  /** Переведённые тексты проекта (название, описание, плюсы, риски). */
+  project: (p: CityProject) => ProjectText
+  district: (d: District) => DistrictText
+  cityProblems: () => string[]
+  profile: (id: string, fallback: { title: string; description: string }) => { title: string; description: string }
+  synergy: (id: string, fallback: string) => string
   setLang: (l: Lang) => void
   setTheme: (t: Theme) => void
 }
@@ -334,7 +479,7 @@ function loadSettings(): Settings {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>
     return {
-      lang: s.lang === 'kk' ? 'kk' : 'ru',
+      lang: s.lang === 'kk' || s.lang === 'en' ? s.lang : 'ru',
       theme: s.theme === 'dark' || s.theme === 'system' ? s.theme : 'light',
     }
   } catch {
@@ -351,7 +496,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } catch {
       /* приватный режим — настройки живут до перезагрузки */
     }
-    document.documentElement.lang = settings.lang === 'kk' ? 'kk' : 'ru'
+    document.documentElement.lang = settings.lang
     const apply = () => {
       const dark =
         settings.theme === 'dark' ||
@@ -380,6 +525,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       t,
       metric: (m) => METRIC_LABELS_I18N[settings.lang][m],
       category: (c) => CATEGORY_LABELS_I18N[settings.lang][c],
+      project: (p) =>
+        settings.lang === 'ru'
+          ? { title: p.title, short: p.shortDescription, benefits: p.benefits, risks: p.risks }
+          : (PROJECT_TEXT[settings.lang][p.id] ?? { title: p.title, short: p.shortDescription, benefits: p.benefits, risks: p.risks }),
+      district: (d) =>
+        settings.lang === 'ru'
+          ? { name: d.name, short: d.short, profile: d.profile, problems: d.problems }
+          : DISTRICT_TEXT[settings.lang][d.id],
+      cityProblems: () => (settings.lang === 'ru' ? CITY_PROBLEMS : CITY_PROBLEMS_TEXT[settings.lang]),
+      profile: (id, fb) => (settings.lang === 'ru' ? fb : (PROFILE_TEXT[settings.lang][id] ?? fb)),
+      synergy: (id, fb) => (settings.lang === 'ru' ? fb : (SYNERGY_TEXT[settings.lang][id] ?? fb)),
       setLang: (lang) => setSettings((s) => ({ ...s, lang })),
       setTheme: (theme) => setSettings((s) => ({ ...s, theme })),
     }),

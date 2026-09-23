@@ -15,7 +15,8 @@ export function ProjectCard({
   selected: boolean
   onSelect: () => void
 }) {
-  const { t } = useI18n()
+  const { t, project: tr } = useI18n()
+  const text = tr(project)
   return (
     <article
       className={`flex flex-col rounded-3xl border bg-surface p-5 shadow-[0_12px_32px_-22px_rgba(48,42,54,0.35)] transition ${
@@ -23,10 +24,10 @@ export function ProjectCard({
       }`}
     >
       <header className="mb-2 flex items-start gap-2">
-        <h3 className="flex-1 text-base font-semibold leading-snug">{project.title}</h3>
+        <h3 className="flex-1 text-base font-semibold leading-snug">{text.title}</h3>
         <span className="pill shrink-0 bg-lavender px-2.5 py-1 text-[11px] text-ink-2">{t(`speed.${project.speed}`)}</span>
       </header>
-      <p className="mb-3 text-sm text-ink-2">{project.shortDescription}</p>
+      <p className="mb-3 text-sm text-ink-2">{text.short}</p>
 
       <dl className="mb-3 grid grid-cols-3 gap-2 text-center font-mono text-xs tabular-nums">
         <Budget label={t('card.min')} value={project.minBudget} />
@@ -48,12 +49,12 @@ export function ProjectCard({
       </ul>
 
       <ul className="mb-2 space-y-1 text-xs text-ink-2">
-        {project.benefits.map((b) => (
+        {text.benefits.map((b) => (
           <li key={b} className="flex gap-1.5">
             <CheckCircle2 aria-hidden className="mt-0.5 size-3.5 shrink-0 text-good-ink" /> {b}
           </li>
         ))}
-        {project.risks.map((r) => (
+        {text.risks.map((r) => (
           <li key={r} className="flex gap-1.5">
             <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" /> <span>{t('card.risk')}: {r}</span>
           </li>

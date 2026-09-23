@@ -4,7 +4,7 @@ import { Ornament } from '../components/Ornament'
 import { ScoreGauge } from '../components/ScoreGauge'
 import { ScoreRadarChart } from '../components/ScoreRadarChart'
 import { DemoBadge, Kicker, Panel } from '../components/ui'
-import { BASELINE, CATEGORIES, CITY_PROBLEMS, METRICS, TOTAL_BUDGET } from '../data/baseline'
+import { BASELINE, CATEGORIES, METRICS, TOTAL_BUDGET } from '../data/baseline'
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '../data/categoryVisuals'
 import { PROJECTS } from '../data/projects'
 import { calculateAqls } from '../lib/calculateSimulation'
@@ -12,7 +12,7 @@ import { fmt, fmtTenge } from '../lib/format'
 import { useI18n } from '../lib/i18n'
 
 export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => void; hasDraft: boolean; onPenalties: () => void }) {
-  const { t, category, metric } = useI18n()
+  const { t, category, metric, cityProblems } = useI18n()
   return (
     <main id="main" className="mx-auto max-w-[1500px] space-y-6 px-3 py-5 sm:px-6">
       <section className="hero rise px-6 py-12 sm:px-12 sm:py-16">
@@ -91,7 +91,7 @@ export function StartPage({ onStart, hasDraft, onPenalties }: { onStart: () => v
           <Panel className="rise">
             <h2 className="mb-3 text-xl font-bold">{t('start.problems')}</h2>
             <ul className="space-y-2 text-sm">
-              {CITY_PROBLEMS.map((p) => (
+              {cityProblems().map((p) => (
                 <li key={p} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
                   <TriangleAlert aria-hidden className="size-4 shrink-0 text-serious" /> {p}
                 </li>

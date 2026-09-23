@@ -8,6 +8,8 @@ import { ScoreRadarChart } from '../components/ScoreRadarChart'
 import { StrategyProfile } from '../components/StrategyProfile'
 import { Button, DemoBadge, Kicker, Panel } from '../components/ui'
 import { outcomeFor } from '../lib/calculateSimulation'
+import { PROJECTS_BY_ID } from '../data/projects'
+import { penaltyText } from '../lib/texts'
 import { fmt, fmtTenge } from '../lib/format'
 import type { Horizon, SimulationResult } from '../types/simulation'
 import { useI18n } from '../lib/i18n'
@@ -23,7 +25,7 @@ export function ResultPage({
   onRestart: () => void
   onPenalties: () => void
 }) {
-  const { t, category } = useI18n()
+  const { t, category, project, synergy, lang } = useI18n()
   const [horizon, setHorizon] = useState<Horizon>('1y')
   const outcome = outcomeFor(result, horizon)
 
@@ -79,7 +81,7 @@ export function ResultPage({
             {result.contributions.map((c) => (
               <li key={c.projectId} className="flex items-baseline gap-2">
                 <span className="w-32 shrink-0 text-xs text-muted">{category(c.category)}</span>
-                <span className="flex-1">{c.title}</span>
+                <span className="flex-1">{project(PROJECTS_BY_ID[c.projectId]).title}</span>
                 <span className="text-right tabular-nums">
                   <span className="block font-semibold">{fmtTenge(c.allocatedBudget)}</span>
                   <span className="block text-xs text-muted">{c.allocatedBudget} {t('budget.units')}</span>
@@ -97,14 +99,14 @@ export function ResultPage({
             <p className="text-sm text-muted">{t('result.noSynergies')}</p>
           )}
           <ul className="space-y-1.5 text-sm">
-            {result.appliedSynergies.map((s) => (
-              <li key={s} className="flex gap-2 text-good-ink">
-                <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0" /> {s}
+            {result.appliedSynergyIds.map((id, k) => (
+              <li key={id} className="flex gap-2 text-good-ink">
+                <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0" /> {synergy(id, result.appliedSynergies[k])}
               </li>
             ))}
             {outcome.penalties.map((p) => (
               <li key={p.description} className="text-warn">
-                − {p.description}
+                − {penaltyText(p, lang, category)}
               </li>
             ))}
           </ul>

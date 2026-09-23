@@ -15,7 +15,7 @@ export function CategoryNavigation({
   draft: DraftDecisions
   onSelect: (c: Category) => void
 }) {
-  const { t, category } = useI18n()
+  const { t, category, project } = useI18n()
   return (
     <nav aria-label="Направления" data-tour="categories" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
       {CATEGORIES.map((c, i) => {
@@ -39,7 +39,7 @@ export function CategoryNavigation({
                 {i + 1}. {category(c)}
               </span>
               <span className={`block truncate text-xs ${chosen ? 'text-good-ink' : 'text-muted'}`}>
-                {chosen ? chosen.title : t('sim.notSelected')}
+                {chosen ? project(chosen).title : t('sim.notSelected')}
               </span>
             </span>
             <span className="text-sm font-bold tabular-nums text-ink-2">{draft[c].allocatedBudget}</span>

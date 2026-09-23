@@ -64,6 +64,7 @@ export interface SimulationResult {
   contributions: ProjectContribution[]
 
   appliedSynergies: string[]
+  appliedSynergyIds: string[]
   oneYear: HorizonOutcome
   threeYears: HorizonOutcome
 

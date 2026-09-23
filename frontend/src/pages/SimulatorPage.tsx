@@ -30,7 +30,7 @@ export function SimulatorPage({
   onActiveChange: (c: Category) => void
   onPenalties: () => void
 }) {
-  const { t, category } = useI18n()
+  const { t, category, synergy } = useI18n()
   // Предварительный прогноз по уже выбранным проектам — считается локально при каждом движении ползунка.
   const preview = useMemo(() => {
     const decisions = toDecisions(draft)
@@ -118,8 +118,8 @@ export function SimulatorPage({
             <ScoreRadarChart before={BASELINE} after={preview?.afterOneYear} afterLabel="Прогноз" />
             {preview && preview.appliedSynergies.length > 0 && (
               <ul className="mt-1 space-y-1 text-xs text-good-ink">
-                {preview.appliedSynergies.map((s) => (
-                  <li key={s}>✦ {s}</li>
+                {preview.appliedSynergyIds.map((id, k) => (
+                  <li key={id}>✦ {synergy(id, preview.appliedSynergies[k])}</li>
                 ))}
               </ul>
             )}

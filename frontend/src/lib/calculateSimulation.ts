@@ -188,6 +188,7 @@ export function calculateSimulation(decisions: SelectedDecision[]): SimulationRe
     selectedDecisions: ordered,
     contributions,
     appliedSynergies: synergies.map((s) => s.description),
+    appliedSynergyIds: synergies.map((s) => s.id),
     oneYear,
     threeYears,
     strategyProfile: determineProfile(ordered),
