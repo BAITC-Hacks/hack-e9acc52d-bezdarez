@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, Circle, Clock, Wrench } from 'lucide-react'
 import { METRICS } from '../data/baseline'
-import { SPEED_LABELS, fmtDelta } from '../lib/format'
+import { SPEED_LABELS, fmtDelta, fmtTenge } from '../lib/format'
 import type { CityProject } from '../types/project'
 
 const METRIC_SHORT = { mobility: 'М', ecology: 'Э', social: 'С', safety: 'Б', services: 'ГС' } as const
@@ -85,7 +85,8 @@ function Budget({ label, value, strong }: { label: string; value: number; strong
   return (
     <div className="rounded-xl bg-surface-2 px-1 py-1.5">
       <dt className="font-sans text-[10px] uppercase tracking-wide text-muted">{label}</dt>
-      <dd className={strong ? 'text-sm font-bold text-ink' : 'text-ink-2'}>{value}</dd>
+      <dd className={strong ? 'text-sm font-bold text-ink' : 'text-ink-2'}>{fmtTenge(value)}</dd>
+      <dd className="text-[10px] text-muted">{value} ед.</dd>
     </div>
   )
 }

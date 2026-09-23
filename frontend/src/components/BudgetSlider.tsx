@@ -1,6 +1,7 @@
 import { CATEGORY_LABELS, CATEGORY_MAX_BUDGET, CATEGORY_MIN_BUDGET } from '../data/baseline'
 import { CATEGORY_COLORS } from '../data/categoryVisuals'
 import { HIGH_BUDGET_THRESHOLD, LOW_BUDGET_THRESHOLD } from '../lib/calculatePenalties'
+import { fmtTenge } from '../lib/format'
 import type { Category } from '../types/project'
 
 export function BudgetSlider({
@@ -54,7 +55,10 @@ export function BudgetSlider({
       />
       <p className="flex justify-between text-xs text-muted">
         <span>{CATEGORY_MIN_BUDGET}</span>
-        {recommended !== undefined && <span>рекомендуется {recommended}</span>}
+        <span className="font-semibold text-ink-2">
+          {fmtTenge(value)}
+          {recommended !== undefined && <span className="font-normal text-muted"> · рек. {recommended} ед.</span>}
+        </span>
         <span>{CATEGORY_MAX_BUDGET}</span>
       </p>
       {warn && <p className="text-xs text-warn">⚠ {warn}</p>}

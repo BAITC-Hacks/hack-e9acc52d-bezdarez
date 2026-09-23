@@ -1,6 +1,11 @@
 import type { Category, CityScores, Metric } from '../types/project'
 
 export const TOTAL_BUDGET = 100
+/**
+ * Условный курс: 1 бюджетная единица = 2 млрд ₸, весь бюджет — 200 млрд ₸.
+ * Порядок величины соответствует крупным городским программам развития, значение модельное.
+ */
+export const TENGE_BN_PER_UNIT = 2
 export const CATEGORY_MIN_BUDGET = 5
 export const CATEGORY_MAX_BUDGET = 40
 

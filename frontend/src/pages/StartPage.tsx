@@ -1,4 +1,5 @@
 import { ArrowRight, TriangleAlert } from 'lucide-react'
+import { CityMap } from '../components/CityMap'
 import { Ornament } from '../components/Ornament'
 import { ScoreGauge } from '../components/ScoreGauge'
 import { ScoreRadarChart } from '../components/ScoreRadarChart'
@@ -7,7 +8,7 @@ import { BASELINE, CATEGORIES, CATEGORY_LABELS, CITY_PROBLEMS, METRIC_LABELS, ME
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '../data/categoryVisuals'
 import { PROJECTS } from '../data/projects'
 import { calculateAqls } from '../lib/calculateSimulation'
-import { fmt } from '../lib/format'
+import { fmt, fmtTenge } from '../lib/format'
 
 export function StartPage({ onStart, hasDraft }: { onStart: () => void; hasDraft: boolean }) {
   return (
@@ -22,7 +23,9 @@ export function StartPage({ onStart, hasDraft }: { onStart: () => void; hasDraft
           <h1 className="mt-5 text-4xl font-black uppercase leading-none tracking-tight sm:text-7xl">Аким на 5 часов</h1>
           <p className="mt-5 text-base font-medium text-white/85 sm:text-lg">
             Вы получили{' '}
-            <span className="pill bg-white px-3 py-1 text-base font-bold text-accent">{TOTAL_BUDGET} бюджетных единиц</span>{' '}
+            <span className="pill bg-white px-3 py-1 text-base font-bold text-accent">
+              {TOTAL_BUDGET} бюджетных единиц · {fmtTenge(TOTAL_BUDGET)}
+            </span>{' '}
             Распределите их между пятью направлениями, выберите проекты и узнайте, как ваши решения повлияют на качество
             жизни виртуального города.
           </p>
@@ -55,6 +58,8 @@ export function StartPage({ onStart, hasDraft }: { onStart: () => void; hasDraft
           )
         })}
       </ul>
+
+      <CityMap />
 
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
         <Panel className="rise">
@@ -97,7 +102,7 @@ export function StartPage({ onStart, hasDraft }: { onStart: () => void; hasDraft
             <ol className="space-y-2 text-sm text-ink-2">
               {[
                 'В каждом из пяти направлений выберите ровно один проект.',
-                `Распределите ровно ${TOTAL_BUDGET} единиц: на направление — от 5 до 40.`,
+                `Распределите ровно ${TOTAL_BUDGET} единиц (${fmtTenge(TOTAL_BUDGET)}, 1 ед. = ${fmtTenge(1)}): на направление — от 5 до 40.`,
                 'Меньше 10 или больше 30 единиц на направление — штраф за перекос.',
                 'Эффект растёт медленнее бюджета: переплата даёт не больше +15%.',
                 'Сравните результат через 1 год и через 3 года.',

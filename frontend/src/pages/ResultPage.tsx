@@ -1,6 +1,7 @@
 import { Pencil, RotateCcw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { AiExplanation } from '../components/AiExplanation'
+import { CityMap } from '../components/CityMap'
 import { ResultComparison } from '../components/ResultComparison'
 import { ScoreGauge } from '../components/ScoreGauge'
 import { ScoreRadarChart } from '../components/ScoreRadarChart'
@@ -8,7 +9,7 @@ import { StrategyProfile } from '../components/StrategyProfile'
 import { Button, DemoBadge, Kicker, Panel } from '../components/ui'
 import { CATEGORY_LABELS } from '../data/baseline'
 import { outcomeFor } from '../lib/calculateSimulation'
-import { fmt } from '../lib/format'
+import { fmt, fmtTenge } from '../lib/format'
 import type { Horizon, SimulationResult } from '../types/simulation'
 
 export function ResultPage({
@@ -66,6 +67,8 @@ export function ResultPage({
         <ResultComparison before={result.before} after={outcome.scores} />
       </Panel>
 
+      <CityMap cityAfter={outcome.scores} title={`Эффект по районам · ${horizon === '1y' ? '1 год' : '3 года'}`} />
+
       <div className="grid gap-5 md:grid-cols-2">
         <Panel className="rise">
           <Kicker>Выбранные проекты</Kicker>
@@ -74,7 +77,10 @@ export function ResultPage({
               <li key={c.projectId} className="flex items-baseline gap-2">
                 <span className="w-32 shrink-0 text-xs text-muted">{CATEGORY_LABELS[c.category]}</span>
                 <span className="flex-1">{c.title}</span>
-                <span className="font-mono tabular-nums">{c.allocatedBudget} ед.</span>
+                <span className="text-right tabular-nums">
+                  <span className="block font-semibold">{fmtTenge(c.allocatedBudget)}</span>
+                  <span className="block text-xs text-muted">{c.allocatedBudget} ед.</span>
+                </span>
                 <span className="w-14 text-right font-mono text-xs tabular-nums text-ink-2" title="Эффективность вложений">
                   {Math.round(c.efficiency * 100)}%
                 </span>

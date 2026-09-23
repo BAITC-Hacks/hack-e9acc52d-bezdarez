@@ -1,5 +1,6 @@
 import { Play } from 'lucide-react'
 import { TOTAL_BUDGET } from '../data/baseline'
+import { fmtTenge } from '../lib/format'
 import { Button } from './ui'
 
 /** Бюджет и кнопка запуска — встраиваются в верхнюю панель на экране решений (п. 14.2). */
@@ -29,7 +30,9 @@ function Stat({ label, value, tone = 'bg-surface-2 text-ink', className = 'flex'
   return (
     <div className={`${className} flex-col rounded-xl px-2.5 py-1 leading-tight ${tone}`}>
       <dt className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</dt>
-      <dd className="text-base font-bold">{value}</dd>
+      <dd className="text-base font-bold">
+        {value} <span className="text-[11px] font-semibold opacity-70">ед. · {fmtTenge(Math.abs(value))}</span>
+      </dd>
     </div>
   )
 }
