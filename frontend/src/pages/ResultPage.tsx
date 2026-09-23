@@ -1,4 +1,4 @@
-import { Building2, Pencil, RotateCcw, Sparkles } from 'lucide-react'
+import { Pencil, RotateCcw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { AiExplanation } from '../components/AiExplanation'
 import { ResultComparison } from '../components/ResultComparison'
@@ -24,18 +24,17 @@ export function ResultPage({
   const outcome = outcomeFor(result, horizon)
 
   return (
-    <main id="main" className="mx-auto max-w-6xl space-y-5 px-4 py-6">
+    <main id="main" className="mx-auto max-w-6xl space-y-5 px-3 py-5 sm:px-6">
       <header className="flex flex-wrap items-center gap-3">
-        <Building2 aria-hidden className="size-6 text-accent" />
-        <h1 className="text-2xl font-bold">Результат симуляции</h1>
-        <div role="radiogroup" aria-label="Горизонт планирования" className="ml-auto flex rounded-xl border border-line bg-surface-2 p-1">
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Результат симуляции</h1>
+        <div role="radiogroup" aria-label="Горизонт планирования" className="ml-auto flex rounded-2xl border border-line bg-surface p-1 shadow-sm">
           {(['1y', '3y'] as const).map((h) => (
             <button
               key={h}
               role="radio"
               aria-checked={horizon === h}
               onClick={() => setHorizon(h)}
-              className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
                 horizon === h ? 'bg-accent text-white' : 'text-ink-2 hover:text-ink'
               }`}
             >

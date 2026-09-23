@@ -20,7 +20,7 @@ export function calculateBalancePenalties(decisions: SelectedDecision[]): Applie
         kind: 'underfunded',
         category: d.category,
         points: low,
-        description: `«${label}»: ${d.allocatedBudget} ед. — меньше ${LOW_BUDGET_THRESHOLD}, штраф −${low.toFixed(2)}`,
+        description: `«${label}»: ${d.allocatedBudget} ед. — меньше ${LOW_BUDGET_THRESHOLD}, штраф −${low.toFixed(2).replace('.', ',')}`,
       })
     }
     if (high > 0) {
@@ -28,7 +28,7 @@ export function calculateBalancePenalties(decisions: SelectedDecision[]): Applie
         kind: 'overfunded',
         category: d.category,
         points: high,
-        description: `«${label}»: ${d.allocatedBudget} ед. — больше ${HIGH_BUDGET_THRESHOLD}, штраф −${high.toFixed(2)}`,
+        description: `«${label}»: ${d.allocatedBudget} ед. — больше ${HIGH_BUDGET_THRESHOLD}, штраф −${high.toFixed(2).replace('.', ',')}`,
       })
     }
   }
@@ -46,6 +46,6 @@ export function calculateMaintenancePenalty(
   return {
     kind: 'maintenance',
     points,
-    description: `Суммарные расходы на обслуживание ${totalMaintenanceCost} (порог ${MAINTENANCE_THRESHOLD}), штраф −${points.toFixed(2)}`,
+    description: `Суммарные расходы на обслуживание ${totalMaintenanceCost} (порог ${MAINTENANCE_THRESHOLD}), штраф −${points.toFixed(2).replace('.', ',')}`,
   }
 }

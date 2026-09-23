@@ -1,7 +1,6 @@
 import { AlertCircle, ArrowLeft, ArrowRight, Scale } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { BudgetChart } from '../components/BudgetChart'
-import { BudgetHeader } from '../components/BudgetHeader'
 import { BudgetSlider } from '../components/BudgetSlider'
 import { CategoryNavigation } from '../components/CategoryNavigation'
 import { ProjectCard } from '../components/ProjectCard'
@@ -9,27 +8,23 @@ import { ScoreRadarChart } from '../components/ScoreRadarChart'
 import { Button, DemoBadge, Kicker, Panel } from '../components/ui'
 import { BASELINE, CATEGORIES, CATEGORY_LABELS, TOTAL_BUDGET } from '../data/baseline'
 import { PROJECTS, PROJECTS_BY_ID } from '../data/projects'
-import { allocatedTotal, calculateAqls, calculateSimulation, toDecisions, validateDecisions } from '../lib/calculateSimulation'
+import { calculateAqls, calculateSimulation, toDecisions } from '../lib/calculateSimulation'
 import { deltaTone, fmt, fmtDelta } from '../lib/format'
 import type { Category } from '../types/project'
-import type { DraftDecisions } from '../types/simulation'
+import type { DraftDecisions, ValidationIssue } from '../types/simulation'
 
 export function SimulatorPage({
   draft,
   onChange,
-  onRun,
-  onHome,
+  issues,
 }: {
   draft: DraftDecisions
   onChange: (d: DraftDecisions) => void
-  onRun: () => void
-  onHome: () => void
+  issues: ValidationIssue[]
 }) {
   const [active, setActive] = useState<Category>(
     () => CATEGORIES.find((c) => !draft[c].projectId) ?? 'transport',
   )
-  const issues = validateDecisions(draft)
-  const allocated = allocatedTotal(draft)
   // Предварительный прогноз по уже выбранным проектам — считается локально при каждом движении ползунка.
   const preview = useMemo(() => {
     const decisions = toDecisions(draft)
@@ -63,9 +58,8 @@ export function SimulatorPage({
 
   return (
     <>
-      <BudgetHeader allocated={allocated} canRun={issues.length === 0} onRun={onRun} onHome={onHome} />
-      <main id="main" className="mx-auto grid max-w-[1500px] gap-5 px-4 py-5 lg:grid-cols-[260px_1fr_360px]">
-        <aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
+      <main id="main" className="mx-auto grid max-w-[1500px] gap-5 px-3 py-5 sm:px-6 lg:grid-cols-[260px_1fr_360px]">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-24 lg:self-start">
           <CategoryNavigation active={active} draft={draft} onSelect={setActive} />
           <div className="hidden lg:block">
             <DemoBadge compact />

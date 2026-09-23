@@ -2,9 +2,10 @@ import { BASELINE, CATEGORY_LABELS, CATEGORY_MAIN_METRIC, METRIC_LABELS, METRICS
 import { PERSONAS, REACTION_TEMPLATES } from '../data/fallbackTexts'
 import type { AiExplanation } from '../types/ai'
 import type { Horizon, SimulationResult } from '../types/simulation'
-import { outcomeFor, round1 } from './calculateSimulation'
+import { PROJECTS_BY_ID } from '../data/projects'
+import { num, outcomeFor } from './calculateSimulation'
 
-const signed = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(round1(v))}`
+const signed = (v: number) => `${v >= 0 ? '+' : '−'}${num(Math.abs(v))}`
 
 /** Шаблонное объяснение (FR-09): работает без AI и использует только рассчитанные данные. */
 export function generateFallbackExplanation(result: SimulationResult, horizon: Horizon): AiExplanation {
@@ -18,17 +19,27 @@ export function generateFallbackExplanation(result: SimulationResult, horizon: H
   const overallDelta = outcome.overall - result.overallBefore
   const horizonLabel = horizon === '1y' ? 'через 1 год' : 'через 3 года'
 
+  const byBudget = [...result.selectedDecisions].sort((a, b) => b.allocatedBudget - a.allocatedBudget)
+  const most = byBudget[0]
+  const least = byBudget[byBudget.length - 1]
+  const other = horizon === '1y' ? result.threeYears : result.oneYear
+  const horizonDiff = other.overall - outcome.overall
+  const slowProjects = result.contributions.filter((c) => PROJECTS_BY_ID[c.projectId].longTermMultiplier >= 1.4).map((c) => `«${c.title}»`)
+
   const summary = [
-    `Наибольший рост ${horizonLabel} — «${METRIC_LABELS[best.m]}» (${signed(best.d)}); основной вклад внёс проект «${bestProject.title}».`,
-    `Минимальное изменение — «${METRIC_LABELS[worst.m]}» (${signed(worst.d)})${
-      worstDecision ? `: на направление выделено ${worstDecision.allocatedBudget} ед.` : '.'
-    }`,
-    `Стратегия изменила общий показатель качества жизни на ${signed(overallDelta)} балла (${result.overallBefore} → ${outcome.overall}).`,
+    `Стратегия изменила общий показатель качества жизни ${horizonLabel} на ${signed(overallDelta)} балла (${num(result.overallBefore)} → ${num(outcome.overall)}).`,
+    `Наибольший рост — «${METRIC_LABELS[best.m]}» (${signed(best.d)}), основной вклад внёс проект «${bestProject.title}»; минимальное изменение — «${METRIC_LABELS[worst.m]}» (${signed(worst.d)}).`,
+    most.allocatedBudget - least.allocatedBudget >= 4
+      ? `Компромисс: больше всего ресурсов получило направление «${CATEGORY_LABELS[most.category]}» (${most.allocatedBudget} ед.), меньше всего — «${CATEGORY_LABELS[least.category]}» (${least.allocatedBudget} ед.).`
+      : `Бюджет распределён ровно — от ${least.allocatedBudget} до ${most.allocatedBudget} ед. на направление, без явного перекоса.`,
+    horizon === '1y'
+      ? `Через 3 года AQLS составит ${num(other.overall)} (${signed(horizonDiff)})${slowProjects.length ? `: полностью раскроются ${slowProjects.join(', ')}` : ''}${other.penaltyTotal > outcome.penaltyTotal ? ', но вырастут расходы на обслуживание' : ''}.`
+      : `По сравнению с первым годом AQLS ${horizonDiff <= 0 ? `выше на ${num(Math.abs(horizonDiff))}` : `ниже на ${num(horizonDiff)}`}: долгосрочные проекты набирают силу, а быстрые эффекты частично выдыхаются.`,
   ].join(' ')
 
   const positives = padTo(outcome.positiveEffects, 3, [
     `Все пять сфер получили финансирование — ни одно направление не осталось без проекта.`,
-    `Общий AQLS: ${result.overallBefore} → ${outcome.overall}.`,
+    `Общий AQLS: ${num(result.overallBefore)} → ${num(outcome.overall)}.`,
     `Профиль стратегии: ${result.strategyProfile.title}.`,
   ]).slice(0, 3)
   const risks = padTo(outcome.risks, 2, [

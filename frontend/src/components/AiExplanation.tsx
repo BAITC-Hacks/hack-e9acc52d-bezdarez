@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, CheckCircle2, Lightbulb, Loader2 } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle2, Info, Lightbulb, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { buildAiPayload } from '../lib/buildAiPayload'
 import { requestExplanation, type ExplainOutcome } from '../lib/explainApi'
@@ -6,16 +6,17 @@ import { generateFallbackExplanation } from '../lib/generateFallbackExplanation'
 import type { AiExplanation as Explanation } from '../types/ai'
 import type { Horizon, SimulationResult } from '../types/simulation'
 import { CitizenReactionCard } from './CitizenReactionCard'
-import { Kicker, Panel } from './ui'
+import { Panel } from './ui'
 
 /**
- * Резервное объяснение показывается сразу, AI-версия подменяет его, когда придёт.
+ * Системное объяснение показывается сразу, AI-версия подменяет его, когда придёт.
  * Так AI-запрос никогда не блокирует экран результата (п. 19.1).
  */
 export function AiExplanation({ result, horizon }: { result: SimulationResult; horizon: Horizon }) {
   const fallback = useMemo(() => generateFallbackExplanation(result, horizon), [result, horizon])
+  const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<{ key: string; outcome: ExplainOutcome | null }>({ key: '', outcome: null })
-  const key = `${JSON.stringify(result.selectedDecisions)}:${horizon}`
+  const key = `${JSON.stringify(result.selectedDecisions)}:${horizon}:${attempt}`
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -27,51 +28,75 @@ export function AiExplanation({ result, horizon }: { result: SimulationResult; h
 
   const outcome = state.key === key ? state.outcome : null
   const loading = outcome === null
-  const data: Explanation = outcome?.source === 'ai' ? outcome.data : fallback
+  const isAi = outcome?.source === 'ai'
+  const data: Explanation = isAi ? outcome.data : fallback
 
   return (
     <>
-      <Panel className="rise">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Kicker>Объяснение последствий</Kicker>
-          <span className="-mt-2 ml-auto">
-            {loading ? (
-              <Badge tone="muted">
-                <Loader2 aria-hidden className="size-3.5 animate-spin" /> AI анализирует…
-              </Badge>
-            ) : outcome?.source === 'ai' ? (
-              <Badge tone="accent">
-                <Bot aria-hidden className="size-3.5" /> AI-объяснение{outcome.model ? ` · ${outcome.model}` : ''}
-              </Badge>
-            ) : (
-              <Badge tone="warn">Шаблонное объяснение</Badge>
-            )}
+      <Panel className="rise overflow-hidden !p-0">
+        <div
+          className={`flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6 ${
+            isAi ? 'bg-gradient-to-r from-accent to-[#0f5a64] text-white' : 'bg-lavender'
+          }`}
+        >
+          <span className={`grid size-10 place-items-center rounded-2xl ${isAi ? 'bg-white/20' : 'bg-white'}`}>
+            {isAi ? <Sparkles aria-hidden className="size-5" /> : <BarChart3 aria-hidden className="size-5 text-accent" />}
           </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-extrabold leading-tight">{isAi ? 'AI-объяснение последствий' : 'Разбор последствий'}</h2>
+            <p className={`text-xs ${isAi ? 'text-white/80' : 'text-muted'}`}>
+              {loading
+                ? 'AI анализирует рассчитанный результат…'
+                : isAi
+                  ? `Сформировано моделью ${outcome.model ?? ''} только по рассчитанным данным`
+                  : 'Сформировано системой по рассчитанным данным'}
+            </p>
+          </div>
+          {loading && <Loader2 aria-label="Загрузка" className="size-5 animate-spin text-accent" />}
+          {outcome?.source === 'fallback' && (
+            <button
+              onClick={() => setAttempt((a) => a + 1)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-ink shadow-sm hover:text-accent"
+            >
+              <RefreshCw aria-hidden className="size-3.5" /> Повторить AI
+            </button>
+          )}
         </div>
-        {outcome?.source === 'fallback' && (
-          <p className="mb-3 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn" role="status">
-            AI-объяснение временно недоступно. Показано объяснение, сформированное системой.
+
+        <div className="p-5 sm:p-6">
+          {outcome?.source === 'fallback' && (
+            <p className="mb-4 flex items-start gap-2 rounded-2xl bg-surface-2 px-4 py-3 text-sm text-ink-2" role="status">
+              <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-accent" />
+              <span>
+                AI-объяснение временно недоступно. Показано объяснение, сформированное системой.
+                <span className="block text-xs text-muted">Причина: {outcome.reason}</span>
+              </span>
+            </p>
+          )}
+
+          <p className="text-base leading-relaxed sm:text-[17px]">{data.summary}</p>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <List title="Положительные последствия" items={data.positives} tone="good" />
+            <List title="Риски и компромиссы" items={data.risks} tone="warn" />
+          </div>
+
+          <div className="mt-5 flex gap-3 rounded-2xl bg-accent-track px-4 py-3.5">
+            <Lightbulb aria-hidden className="mt-0.5 size-5 shrink-0 text-good-ink" />
+            <p className="text-sm">
+              <span className="block text-xs font-bold uppercase tracking-wide text-good-ink">Рекомендация</span>
+              {data.recommendation}
+            </p>
+          </div>
+          <p className="mt-4 text-xs text-muted">
+            AI получает только рассчитанные системой значения и не меняет баллы. Модель демонстрационная и не является
+            прогнозом для Астаны.
           </p>
-        )}
-        <p className="mb-4 text-base leading-relaxed">{data.summary}</p>
-        <div className="grid gap-4 md:grid-cols-2">
-          <List title="Положительные последствия" items={data.positives} icon={<CheckCircle2 aria-hidden className="size-4 text-good-ink" />} />
-          <List title="Риски и компромиссы" items={data.risks} icon={<AlertTriangle aria-hidden className="size-4 text-warn" />} />
         </div>
-        <p className="mt-4 flex gap-2 rounded-xl border border-accent/40 bg-accent-track/60 px-3 py-2.5 text-sm">
-          <Lightbulb aria-hidden className="mt-0.5 size-4 shrink-0 text-accent" />
-          <span>
-            <strong>Рекомендация: </strong>
-            {data.recommendation}
-          </span>
-        </p>
-        <p className="mt-3 text-xs text-muted">
-          AI получает только рассчитанные системой значения и не меняет баллы. Модель демонстрационная.
-        </p>
       </Panel>
 
       <Panel className="rise">
-        <Kicker>Реакции условных жителей</Kicker>
+        <h2 className="mb-4 text-lg font-extrabold">Что скажут жители</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {data.citizenReactions.map((r, i) => (
             <CitizenReactionCard key={r.persona} reaction={r} index={i} />
@@ -82,27 +107,19 @@ export function AiExplanation({ result, horizon }: { result: SimulationResult; h
   )
 }
 
-function List({ title, items, icon }: { title: string; items: string[]; icon: React.ReactNode }) {
+function List({ title, items, tone }: { title: string; items: string[]; tone: 'good' | 'warn' }) {
+  const Icon = tone === 'good' ? CheckCircle2 : AlertTriangle
   return (
-    <div>
-      <h3 className="mb-2 text-sm font-semibold">{title}</h3>
-      <ul className="space-y-1.5 text-sm text-ink-2">
+    <div className={`rounded-2xl border p-4 ${tone === 'good' ? 'border-accent/25' : 'border-warn/25'}`}>
+      <h3 className={`mb-2.5 text-sm font-bold ${tone === 'good' ? 'text-good-ink' : 'text-warn'}`}>{title}</h3>
+      <ul className="space-y-2 text-sm text-ink-2">
         {items.map((t) => (
           <li key={t} className="flex gap-2">
-            <span className="mt-0.5 shrink-0">{icon}</span>
+            <Icon aria-hidden className={`mt-0.5 size-4 shrink-0 ${tone === 'good' ? 'text-good-ink' : 'text-warn'}`} />
             {t}
           </li>
         ))}
       </ul>
     </div>
   )
-}
-
-function Badge({ children, tone }: { children: React.ReactNode; tone: 'muted' | 'accent' | 'warn' }) {
-  const cls = {
-    muted: 'border-line text-muted',
-    accent: 'border-accent/50 text-accent-hover',
-    warn: 'border-warn/50 text-warn',
-  }[tone]
-  return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${cls}`}>{children}</span>
 }

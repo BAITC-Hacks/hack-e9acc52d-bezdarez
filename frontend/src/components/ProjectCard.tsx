@@ -16,13 +16,13 @@ export function ProjectCard({
 }) {
   return (
     <article
-      className={`flex flex-col rounded-2xl border p-4 transition ${
-        selected ? 'border-accent bg-accent-track/60' : 'border-line bg-surface-2'
+      className={`flex flex-col rounded-3xl border bg-surface p-5 shadow-[0_12px_32px_-22px_rgba(48,42,54,0.35)] transition ${
+        selected ? 'border-accent ring-4 ring-accent/15' : 'border-line hover:-translate-y-0.5 hover:border-accent/40'
       }`}
     >
       <header className="mb-2 flex items-start gap-2">
         <h3 className="flex-1 text-base font-semibold leading-snug">{project.title}</h3>
-        <span className="rounded-md bg-surface px-2 py-0.5 text-xs text-ink-2">{SPEED_LABELS[project.speed]}</span>
+        <span className="pill shrink-0 bg-lavender px-2.5 py-1 text-[11px] text-ink-2">{SPEED_LABELS[project.speed]}</span>
       </header>
       <p className="mb-3 text-sm text-ink-2">{project.shortDescription}</p>
 
@@ -36,8 +36,8 @@ export function ProjectCard({
         {METRICS.filter((m) => project.effects[m] !== 0).map((m) => (
           <li
             key={m}
-            className={`rounded-md px-1.5 py-0.5 font-mono text-xs ${
-              project.effects[m] > 0 ? 'bg-good/15 text-good-ink' : 'bg-crit/15 text-crit-ink'
+            className={`rounded-lg px-2 py-0.5 text-xs font-semibold ${
+              project.effects[m] > 0 ? 'bg-accent-track text-good-ink' : 'bg-crit/10 text-crit-ink'
             }`}
           >
             {METRIC_SHORT[m]} {fmtDelta(project.effects[m])}
@@ -70,8 +70,8 @@ export function ProjectCard({
       <button
         onClick={onSelect}
         aria-pressed={selected}
-        className={`mt-auto flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
-          selected ? 'bg-accent text-white' : 'border border-line hover:border-accent'
+        className={`mt-auto flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+          selected ? 'bg-accent text-white' : 'bg-surface-2 text-ink hover:bg-accent-track hover:text-good-ink'
         }`}
       >
         {selected ? <CheckCircle2 aria-hidden className="size-4" /> : <Circle aria-hidden className="size-4" />}
@@ -83,7 +83,7 @@ export function ProjectCard({
 
 function Budget({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
   return (
-    <div className="rounded-lg bg-surface px-1 py-1.5">
+    <div className="rounded-xl bg-surface-2 px-1 py-1.5">
       <dt className="font-sans text-[10px] uppercase tracking-wide text-muted">{label}</dt>
       <dd className={strong ? 'text-sm font-bold text-ink' : 'text-ink-2'}>{value}</dd>
     </div>

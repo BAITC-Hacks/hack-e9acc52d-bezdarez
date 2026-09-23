@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { DEMO_DISCLAIMER } from '../data/baseline'
 
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`panel rounded-2xl p-4 sm:p-5 ${className}`}>{children}</section>
+  return <section className={`panel p-5 sm:p-6 ${className}`}>{children}</section>
 }
 
 export function Kicker({ children }: { children: ReactNode }) {
@@ -31,6 +31,7 @@ export function Button({
   variant = 'primary',
   type = 'button',
   title,
+  ariaLabel,
 }: {
   children: ReactNode
   onClick?: () => void
@@ -38,15 +39,16 @@ export function Button({
   variant?: 'primary' | 'ghost'
   type?: 'button' | 'submit'
   title?: string
+  ariaLabel?: string
 }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45'
+    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-45'
   const styles =
     variant === 'primary'
       ? 'bg-accent text-white hover:bg-accent-hover'
-      : 'border border-line bg-surface-2 text-ink hover:border-ink-2/40'
+      : 'bg-surface-2 text-ink hover:bg-lavender border border-line'
   return (
-    <button type={type} onClick={onClick} disabled={disabled} title={title} className={`${base} ${styles}`}>
+    <button type={type} onClick={onClick} disabled={disabled} title={title} aria-label={ariaLabel} className={`${base} ${styles}`}>
       {children}
     </button>
   )

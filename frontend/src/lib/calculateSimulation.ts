@@ -28,6 +28,8 @@ import { determineProfile } from './determineProfile'
 
 export const clamp = (value: number): number => Math.max(0, Math.min(100, value))
 export const round1 = (value: number): number => Math.round(value * 10) / 10
+/** Число для текста на русском: одна цифра после запятой. */
+export const num = (value: number): string => String(round1(value)).replace('.', ',')
 
 /** AQLS = взвешенная сумма пяти показателей − штрафы (п. 10.1), в диапазоне 0–100. */
 export function calculateAqls(scores: CityScores, penaltyTotal = 0): number {
@@ -101,7 +103,7 @@ function describeHorizon(
     if (d <= 0) continue
     const top = [...contributions].sort((a, b) => b[effectKey][m] - a[effectKey][m])[0]
     positiveEffects.push(
-      `${METRIC_LABELS[m]}: +${round1(d)} — основной вклад проекта «${top.title}».`,
+      `${METRIC_LABELS[m]}: +${num(d)} — основной вклад проекта «${top.title}».`,
     )
   }
   for (const s of synergyDescriptions) positiveEffects.push(`Синергия: ${s}.`)
@@ -114,11 +116,11 @@ function describeHorizon(
 
   const risks: string[] = []
   for (const { m, d } of deltas) {
-    if (d < 0) risks.push(`${METRIC_LABELS[m]} снизилась на ${round1(Math.abs(d))} из-за побочных эффектов проектов.`)
+    if (d < 0) risks.push(`${METRIC_LABELS[m]} снизилась на ${num(Math.abs(d))} из-за побочных эффектов проектов.`)
   }
   const weakest = deltas[deltas.length - 1]
   if (weakest.d >= 0 && weakest.d < 3) {
-    risks.push(`Минимальный рост — «${METRIC_LABELS[weakest.m]}» (+${round1(weakest.d)}): этой сфере досталось мало ресурсов.`)
+    risks.push(`Минимальный рост — «${METRIC_LABELS[weakest.m]}» (+${num(weakest.d)}): этой сфере досталось мало ресурсов.`)
   }
   for (const p of penalties) risks.push(p.description + '.')
   for (const c of contributions) {
