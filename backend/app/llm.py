@@ -1,0 +1,110 @@
+"""OpenAI-совместимый клиент LLM на urllib: NVIDIA NIM (build.nvidia.com),
+vLLM/NIM на GPU-инстансе Brev или любой другой совместимый endpoint.
+
+Настройка только через окружение сервера (п. 18 ТЗ):
+    LLM_API_KEY, LLM_API_URL, LLM_MODEL
+Ключ никогда не логируется и не уходит на клиент.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import time
+import urllib.error
+import urllib.request
+
+log = logging.getLogger(__name__)
+
+DEFAULT_API_URL = "https://integrate.api.nvidia.com/v1"
+DEFAULT_MODEL = "meta/llama-3.3-70b-instruct"
+RETRY_STATUSES = {429, 500, 502, 503, 504}
+
+
+class LLMError(RuntimeError):
+    """Любой сбой LLM — вызывающий код уходит на шаблонное объяснение."""
+
+
+class LLMClient:
+    def __init__(
+        self,
+        api_key: str | None = None,
+        api_url: str | None = None,
+        model: str | None = None,
+        timeout: float | None = None,
+        retries: int = 2,
+    ) -> None:
+        self.api_key = api_key if api_key is not None else (os.getenv("LLM_API_KEY") or os.getenv("NVIDIA_API_KEY") or "")
+        self.api_url = (api_url or os.getenv("LLM_API_URL") or DEFAULT_API_URL).rstrip("/")
+        self.model = model or os.getenv("LLM_MODEL") or DEFAULT_MODEL
+        self.timeout = timeout if timeout is not None else float(os.getenv("LLM_TIMEOUT_SECONDS", "25"))
+        self.retries = retries
+
+    @property
+    def configured(self) -> bool:
+        # Свой инстанс (Brev/vLLM) может работать без ключа — тогда достаточно явного LLM_API_URL.
+        return bool(self.api_key) or bool(os.getenv("LLM_API_URL"))
+
+    def chat_json(self, messages: list[dict], temperature: float = 0.2, max_tokens: int = 1200) -> dict:
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "response_format": {"type": "json_object"},
+        }
+        try:
+            resp = self._post("/chat/completions", payload)
+        except LLMError as e:
+            # Часть моделей NIM/vLLM не поддерживает response_format — повторяем без него.
+            if "HTTP 4" not in str(e) or "HTTP 401" in str(e) or "HTTP 429" in str(e):
+                raise
+            payload.pop("response_format")
+            resp = self._post("/chat/completions", payload)
+        try:
+            text = resp["choices"][0]["message"]["content"] or ""
+        except (KeyError, IndexError, TypeError) as e:
+            raise LLMError(f"неожиданный формат ответа: {e}") from e
+        usage = resp.get("usage") or {}
+        log.info("llm ok model=%s in=%s out=%s", self.model, usage.get("prompt_tokens"), usage.get("completion_tokens"))
+        return extract_json(text)
+
+    def _post(self, path: str, payload: dict) -> dict:
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        req = urllib.request.Request(
+            f"{self.api_url}{path}", data=json.dumps(payload).encode(), headers=headers, method="POST"
+        )
+        last: LLMError | None = None
+        for attempt in range(self.retries + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                    return json.loads(r.read().decode("utf-8"))
+            except urllib.error.HTTPError as e:
+                body = e.read().decode("utf-8", errors="replace")[:200]
+                last = LLMError(f"HTTP {e.code}: {body}")
+                if e.code not in RETRY_STATUSES:
+                    break
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as e:
+                last = LLMError(f"{type(e).__name__}: {e}")
+            if attempt < self.retries:
+                time.sleep(0.8 * (attempt + 1))
+        raise last or LLMError("неизвестная ошибка")
+
+
+def extract_json(text: str) -> dict:
+    """Терпит ```json-обёртку, <think>-блоки reasoning-моделей и текст вокруг объекта."""
+    if "</think>" in text:
+        text = text.split("</think>", 1)[1]
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end <= start:
+        raise LLMError("в ответе нет JSON-объекта")
+    try:
+        data = json.loads(text[start : end + 1])
+    except json.JSONDecodeError as e:
+        raise LLMError(f"невалидный JSON: {e}") from e
+    if not isinstance(data, dict):
+        raise LLMError("JSON не является объектом")
+    return data

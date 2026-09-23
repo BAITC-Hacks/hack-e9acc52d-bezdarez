@@ -3,11 +3,10 @@ services:
     build:
       context: ./backend
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN:-}
-      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5}
-      AI_DISABLED: ${AI_DISABLED:-false}
-      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-120}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_API_URL: ${LLM_API_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-25}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
